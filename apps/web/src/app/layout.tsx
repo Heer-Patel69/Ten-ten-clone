@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import TopNav from '@/components/TopNav';
 import BottomNav from '@/components/BottomNav';
+import GlobalNotifications from '@/components/GlobalNotifications';
 
 const playfair = Playfair_Display({ 
   subsets: ['latin'],
@@ -70,6 +71,7 @@ export default function RootLayout({
         <div className="bg-mesh" />
         <SocketProvider>
           <AuthProvider>
+            <GlobalNotifications />
             <TopNav />
             {children}
             <BottomNav />

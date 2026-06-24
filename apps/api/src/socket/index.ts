@@ -254,6 +254,41 @@ export function setupSocket(httpServer: HttpServer): Server {
       }
     });
 
+    // --- VIDEO WEBRTC SIGNALING ---
+    socket.on('video:offer', (data: { to: string; offer: any; isGroup?: boolean }) => {
+      if (data.isGroup) {
+        // Broadcast to group except sender
+        socket.to(data.to).emit('video:offer', { from: userId, displayName, offer: data.offer, isGroup: true, groupId: data.to });
+      } else {
+        const targetSocketId = getPrimarySocketId(data.to);
+        if (targetSocketId) {
+          io.to(targetSocketId).emit('video:offer', { from: userId, displayName, offer: data.offer, isGroup: false });
+        }
+      }
+    });
+
+    socket.on('video:answer', (data: { to: string; answer: any; isGroup?: boolean }) => {
+      if (data.isGroup) {
+        socket.to(data.to).emit('video:answer', { from: userId, answer: data.answer, isGroup: true, groupId: data.to });
+      } else {
+        const targetSocketId = getPrimarySocketId(data.to);
+        if (targetSocketId) {
+          io.to(targetSocketId).emit('video:answer', { from: userId, answer: data.answer, isGroup: false });
+        }
+      }
+    });
+
+    socket.on('video:ice-candidate', (data: { to: string; candidate: any; isGroup?: boolean }) => {
+      if (data.isGroup) {
+        socket.to(data.to).emit('video:ice-candidate', { from: userId, candidate: data.candidate, isGroup: true, groupId: data.to });
+      } else {
+        const targetSocketId = getPrimarySocketId(data.to);
+        if (targetSocketId) {
+          io.to(targetSocketId).emit('video:ice-candidate', { from: userId, candidate: data.candidate, isGroup: false });
+        }
+      }
+    });
+
     // --- CHAT SIGNALING ---
     socket.on('chat:typing', (data: { to?: string; groupId?: string }) => {
       if (data.groupId) {

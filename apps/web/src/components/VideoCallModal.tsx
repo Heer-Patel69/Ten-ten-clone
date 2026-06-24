@@ -6,10 +6,11 @@ import { useSocket } from '@/contexts/SocketContext';
 interface VideoCallModalProps {
   peerId: string;
   isGroup: boolean;
+  incomingOffer?: RTCSessionDescriptionInit;
   onClose: () => void;
 }
 
-export default function VideoCallModal({ peerId, isGroup, onClose }: VideoCallModalProps) {
+export default function VideoCallModal({ peerId, isGroup, incomingOffer, onClose }: VideoCallModalProps) {
   const { socket } = useSocket();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -64,15 +65,28 @@ export default function VideoCallModal({ peerId, isGroup, onClose }: VideoCallMo
           });
         }
 
-        // Create offer
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        if (socket) {
-          socket.emit('video:offer', {
-            to: peerId,
-            offer,
-            isGroup
-          });
+        // Create offer or answer
+        if (incomingOffer) {
+          await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          if (socket) {
+            socket.emit('video:answer', {
+              to: peerId,
+              answer,
+              isGroup
+            });
+          }
+        } else {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          if (socket) {
+            socket.emit('video:offer', {
+              to: peerId,
+              offer,
+              isGroup
+            });
+          }
         }
 
       } catch (err) {
@@ -95,7 +109,7 @@ export default function VideoCallModal({ peerId, isGroup, onClose }: VideoCallMo
         socket.off('video:ice-candidate');
       }
     };
-  }, [peerId, isGroup, socket]);
+  }, [peerId, isGroup, socket, incomingOffer]);
 
   return (
     <div style={{
