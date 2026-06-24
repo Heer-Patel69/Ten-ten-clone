@@ -1,8 +1,8 @@
 {
   "id": "/friends",
-  "name": "BLINK — Meet. Talk. Disappear.",
-  "short_name": "BLINK",
-  "description": "Meet new people, talk instantly, and watch messages vanish — your secrets are safe.",
+  "name": "WalkieTalk",
+  "short_name": "WalkieTalk",
+  "description": "Live voice chat with friends, like a walkie-talkie on your phone",
   "start_url": "/friends?source=pwa",
   "scope": "/",
   "display": "standalone",

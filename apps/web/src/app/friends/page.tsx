@@ -220,51 +220,36 @@ export default function FriendsPage() {
             {friends.map((f, index) => (
               <div
                 key={f.friendshipId}
-                className={`friend-card liquid-glass stagger-item`}
+                className={`friend-card stagger-item`}
                 style={{ animationDelay: `${index * 0.05}s` }}
-                onClick={() => router.push(`/chat/${f.friend._id}`)}
+                onClick={() => router.push(`/talk/${f.friend._id}`)}
               >
                 <div className="avatar">
                   {f.friend.displayName.charAt(0)}
                 </div>
                 <div className="friend-info">
-                  <div className="friend-name" style={{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-semibold)' }}>{f.friend.displayName}</div>
-                  <div className="friend-status" style={{ fontFamily: 'var(--font-primary)' }}>
+                  <div className="friend-name">{f.friend.displayName}</div>
+                  <div className="friend-status">
                     <span className={`status-dot ${f.friend.isOnline ? 'status-online' : 'status-offline'}`} />
                     {f.friend.isOnline ? 'Online' : formatLastSeen(f.friend.lastSeen)}
                   </div>
-                  <div className="friend-code" style={{ fontFamily: 'var(--font-primary)' }}>#{f.friend.userCode}</div>
+                  <div className="friend-code">#{f.friend.userCode}</div>
                 </div>
-                <div style={{ display: 'flex', gap: 'var(--space-xs)', flexShrink: 0, flexDirection: 'column' }}>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/chat/${f.friend._id}`);
-                    }}
-                    style={{ padding: '0.4rem 0.6rem', fontFamily: 'var(--font-primary)' }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                    Chat
-                  </button>
-                  <button
-                    className="btn btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/talk/${f.friend._id}`);
-                    }}
-                    style={{ padding: '0.4rem 0.6rem', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', fontFamily: 'var(--font-primary)' }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      <line x1="12" y1="19" x2="12" y2="23" />
-                    </svg>
-                    Talk
-                  </button>
-                </div>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/talk/${f.friend._id}`);
+                  }}
+                  style={{ flexShrink: 0 }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                  </svg>
+                  Talk
+                </button>
               </div>
             ))}
           </div>

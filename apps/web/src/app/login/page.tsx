@@ -40,9 +40,9 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-bg" />
-      <div className="auth-card liquid-glass">
-        <h1 className="auth-logo">BLINK</h1>
-        <p className="auth-subtitle">Meet. Talk. Disappear.</p>
+      <div className="auth-card glass-card">
+        <h1 className="auth-logo">WalkieTalk</h1>
+        <p className="auth-subtitle">Talk to your friends instantly</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="input-group">

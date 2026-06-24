@@ -53,7 +53,7 @@ export default function RegisterPage() {
     return (
       <div className="auth-page">
         <div className="auth-bg" />
-        <div className="auth-card liquid-glass">
+        <div className="auth-card glass-card">
           <div style={{ fontSize: '48px', marginBottom: 'var(--space-md)' }}>🎉</div>
           <h1 className="auth-logo" style={{ fontSize: 'var(--fs-2xl)' }}>
             Welcome!
@@ -88,8 +88,8 @@ export default function RegisterPage() {
   return (
     <div className="auth-page">
       <div className="auth-bg" />
-      <div className="auth-card liquid-glass">
-        <h1 className="auth-logo">BLINK</h1>
+      <div className="auth-card glass-card">
+        <h1 className="auth-logo">WalkieTalk</h1>
         <p className="auth-subtitle">Create your account & get your unique code</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>

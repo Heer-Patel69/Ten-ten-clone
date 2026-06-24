@@ -103,10 +103,6 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
   }, [webrtc.cleanup]);
 
   const handleToggleTalk = () => {
-    if (!micInitialized) {
-      handleInitMicrophone();
-      return;
-    }
     if (webrtc.isTalking) {
       webrtc.stopTalking();
     } else {
@@ -124,134 +120,168 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
   };
 
   if (authLoading || loading) {
-    return <div className="min-h-screen flex items-center justify-center text-primary"><span className="material-symbols-outlined animate-spin text-4xl">blur_on</span></div>;
+    return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
   }
 
   if (!friend) {
     return (
-      <div className="min-h-screen mesh-bg flex flex-col items-center justify-center">
-        <h3 className="text-xl text-text-primary mb-4 font-semibold">Friend not found</h3>
-        <button className="bg-primary text-white px-6 py-2 rounded-full" onClick={() => router.push('/friends')}>
-          Go Back
-        </button>
+      <div className="page">
+        <div className="page-content">
+          <div className="empty-state">
+            <h3>Friend not found</h3>
+            <button className="btn btn-primary" onClick={() => router.push('/friends')}>
+              Go Back
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mesh-bg min-h-screen flex flex-col font-primary text-text-primary">
+    <div className="page" style={{ background: 'var(--color-bg-primary)' }}>
       {/* Header */}
-      <header className="glass-surface px-6 py-4 flex items-center justify-between sticky top-0 z-10 border-b border-white/40">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/add-friend')} className="text-text-secondary hover:text-primary transition-colors">
-            <span className="material-symbols-outlined text-[28px]">arrow_back</span>
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white font-bold shadow-inner">
-                {friend.displayName.charAt(0).toUpperCase()}
-              </div>
-              <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${friend.isOnline ? 'bg-secondary' : 'bg-outline'}`}></div>
-            </div>
-            <div>
-              <h1 className="font-semibold text-lg leading-tight">{friend.displayName}</h1>
-              <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full w-fit">
-                <span className="material-symbols-outlined text-[12px]">shield</span>
-                E2E Encrypted
-              </div>
-            </div>
+      <div className="page-header">
+        <button className="btn btn-ghost btn-sm" onClick={() => router.push('/friends')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-lg)' }}>
+            {friend.displayName}
+          </div>
+          <div className="friend-status" style={{ justifyContent: 'center' }}>
+            <span className={`status-dot ${friend.isOnline ? 'status-online' : 'status-offline'}`} />
+            {friend.isOnline ? 'Online' : 'Offline'}
           </div>
         </div>
-        <button className="text-text-secondary hover:text-primary transition-colors">
-          <span className="material-symbols-outlined">settings</span>
-        </button>
-      </header>
+        <div style={{ width: '40px' }} />
+      </div>
 
-      {/* Main Chat Area */}
-      <main className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 pb-32">
-        {/* Placeholder Messages to match Design Guide */}
-        <div className="flex items-start gap-3">
-           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-fixed to-primary flex items-center justify-center text-white text-xs font-bold shadow-inner shrink-0 mt-1">
-              {friend.displayName.charAt(0).toUpperCase()}
-            </div>
-            <div className="bg-white/80 backdrop-blur-md border border-white/50 px-5 py-3 rounded-2xl rounded-tl-sm shadow-sm max-w-[80%]">
-              <p className="text-sm">Hey, are we still meeting in the Zen Protocol node?</p>
-              <span className="text-[10px] text-text-muted mt-1 block">10:42 AM</span>
-            </div>
+      {/* Main Talk Area */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 'var(--space-xl)',
+        padding: 'var(--space-xl)',
+      }}>
+        {/* Friend Avatar */}
+        <div className="avatar avatar-lg" style={{
+          width: '100px',
+          height: '100px',
+          fontSize: 'var(--fs-4xl)',
+          boxShadow: friend.isOnline ? 'var(--shadow-glow)' : 'none',
+          transition: 'box-shadow var(--transition-base)',
+        }}>
+          {friend.displayName.charAt(0)}
         </div>
 
-        <div className="flex flex-col items-end gap-1">
-            <div className="bg-primary/10 backdrop-blur-md border border-primary/20 px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm max-w-[80%] text-text-primary">
-              <p className="text-sm">Yeah for sure. Let me just grab a coffee first ☕</p>
-              <span className="text-[10px] text-text-muted mt-1 block text-right">10:45 AM</span>
-            </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-fixed to-primary flex items-center justify-center text-white text-xs font-bold shadow-inner shrink-0 mt-1">
-              {friend.displayName.charAt(0).toUpperCase()}
-            </div>
-            <div className="bg-white/80 backdrop-blur-md border border-white/50 px-5 py-3 rounded-2xl rounded-tl-sm shadow-sm max-w-[80%]">
-              <p className="text-sm">See you there!</p>
-              <span className="text-[10px] text-text-muted mt-1 block">10:46 AM</span>
-            </div>
-        </div>
-
-        {/* Dynamic Voice Walkie-Talkie Status */}
-        {(webrtc.isTalking || webrtc.isReceiving || !micInitialized) && (
-          <div className="my-8 flex justify-center w-full">
-            <div className="glass-surface px-6 py-4 rounded-3xl text-center max-w-sm w-full animate-fade-in-up">
-              {!micInitialized ? (
-                <div className="text-sm text-text-secondary">
-                  <span className="material-symbols-outlined block text-3xl mb-2 text-primary/50">mic_off</span>
-                  Mic not initialized. Tap the mic below to start.
-                </div>
-              ) : webrtc.isTalking ? (
-                <div className="text-primary font-semibold flex flex-col items-center gap-2">
-                  <span className="relative flex h-8 w-8 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
-                    <span className="material-symbols-outlined relative inline-flex">mic</span>
-                  </span>
-                  You are broadcasting...
-                </div>
-              ) : webrtc.isReceiving ? (
-                <div className="text-secondary font-semibold flex flex-col items-center gap-2">
-                  <span className="relative flex h-8 w-8 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-40"></span>
-                    <span className="material-symbols-outlined relative inline-flex">volume_up</span>
-                  </span>
-                  {friend.displayName} is speaking...
-                </div>
-              ) : null}
-            </div>
+        {/* Voice Waveform — visible when talking or receiving */}
+        {(webrtc.isTalking || webrtc.isReceiving) && (
+          <div className="voice-waves">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="voice-wave-bar" style={{
+                background: webrtc.isTalking ? 'var(--color-danger)' : 'var(--color-accent)',
+              }} />
+            ))}
           </div>
         )}
-      </main>
 
-      {/* Input Area */}
-      <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#fdfafb] to-transparent">
-        <div className="max-w-2xl mx-auto glass-surface rounded-full flex items-center px-4 py-2 shadow-[0_8px_32px_rgba(121,82,227,0.12)] border border-white/60">
-          <button className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted hover:text-primary transition-colors shrink-0">
-            <span className="material-symbols-outlined text-[24px]">add</span>
-          </button>
-          
-          <input 
-            type="text" 
-            placeholder="Whisper..." 
-            className="flex-1 bg-transparent border-none outline-none px-4 text-sm placeholder:text-text-muted/60"
-          />
+        {/* Status Text or Init Button */}
+        <div style={{ textAlign: 'center', width: '100%' }}>
+          {!micInitialized ? (
+            <div style={{ padding: 'var(--space-md)' }}>
+              <p className="text-secondary" style={{ marginBottom: 'var(--space-md)' }}>
+                You must allow microphone access to talk.
+              </p>
+              <button
+                className={`btn btn-primary ${initLoading ? 'loading' : ''}`}
+                onClick={handleInitMicrophone}
+                disabled={initLoading}
+                style={{ width: '100%' }}
+              >
+                {initLoading ? 'Requesting...' : 'Enable Microphone & Join'}
+              </button>
+            </div>
+          ) : webrtc.isTalking ? (
+            <p style={{ color: 'var(--color-danger)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-lg)' }}>
+              🔴 You are talking... (Tap to stop)
+            </p>
+          ) : webrtc.isReceiving ? (
+            <p style={{ color: 'var(--color-accent)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-lg)' }}>
+              🟢 {friend.displayName} is talking...
+            </p>
+          ) : (
+            <p className="text-secondary">
+              Tap the button to talk
+            </p>
+          )}
+          {webrtc.remotePlaybackBlocked && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={webrtc.retryRemotePlayback}
+              style={{ marginTop: 'var(--space-md)' }}
+            >
+              Enable Speaker
+            </button>
+          )}
+        </div>
 
-          <button 
+        {/* Tap-to-Talk Button */}
+        <div className="ptt-container">
+          <button
+            className={`ptt-button ${webrtc.isTalking ? 'recording' : ''}`}
             onClick={handleToggleTalk}
-            className={`w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 shadow-md transition-transform active:scale-90 ${webrtc.isTalking ? 'bg-danger shadow-danger/30' : 'bg-primary shadow-primary/30'}`}
+            disabled={!micInitialized}
+            style={{
+              opacity: micInitialized ? 1 : 0.4,
+              cursor: micInitialized ? 'pointer' : 'not-allowed',
+            }}
           >
-            <span className="material-symbols-outlined text-[24px] fill-icon">
-              {webrtc.isTalking ? 'stop' : 'mic'}
-            </span>
+            <div className="ptt-ring" />
+            <div className="ptt-ring" />
+            <div className="ptt-ring" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
           </button>
+          <p className="ptt-label">
+            {webrtc.isTalking ? "Tap to Stop" : "Tap to Talk"}
+          </p>
         </div>
       </div>
-      
+      {/* Debug Panel */}
+      <div style={{
+        margin: 'var(--space-md)',
+        padding: 'var(--space-md)',
+        background: '#1a1a1a',
+        borderRadius: 'var(--radius-md)',
+        color: '#00ff00',
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        maxHeight: '150px',
+        overflowY: 'auto',
+        textAlign: 'left'
+      }}>
+        <div style={{ color: '#fff', marginBottom: '4px', fontWeight: 'bold' }}>
+          Diagnostics (Socket: {isConnected ? 'CONNECTED' : 'DISCONNECTED'})
+        </div>
+        {webrtc.debugLogs.length === 0 ? (
+          <div style={{ color: '#888' }}>Waiting for activity...</div>
+        ) : (
+          webrtc.debugLogs.map((log, i) => (
+            <div key={i}>{log}</div>
+          ))
+        )}
+      </div>
+
     </div>
   );
 }
