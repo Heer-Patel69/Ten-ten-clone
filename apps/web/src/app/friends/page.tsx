@@ -152,10 +152,16 @@ export default function FriendsPage() {
         </div>
       )}
 
-      <div className="page-header">
-        <h1 className="page-title">Friends</h1>
+      <div className="page-header" style={{ marginBottom: '0.5rem' }}>
+        <h1 className="page-title" style={{ fontFamily: 'var(--font-display)' }}>Friends</h1>
         <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-          <Link href="/add-friend" className="btn btn-primary btn-sm" style={{ position: 'relative' }}>
+          <Link href="/groups/join" className="btn btn-sm" style={{ fontFamily: 'var(--font-primary)' }}>
+            Join Group
+          </Link>
+          <Link href="/groups/create" className="btn btn-sm" style={{ fontFamily: 'var(--font-primary)' }}>
+            Create Group
+          </Link>
+          <Link href="/add-friend" className="btn btn-primary btn-sm" style={{ position: 'relative', fontFamily: 'var(--font-primary)' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
@@ -169,7 +175,32 @@ export default function FriendsPage() {
         </div>
       </div>
 
-      <div className="page-content" style={{ paddingBottom: '100px' }}>
+      {/* Stories Section (Instagram Style) */}
+      <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', padding: '1rem', scrollbarWidth: 'none', borderBottom: '1px solid var(--color-border)' }}>
+        {/* "My Story" button */}
+        <Link href="/stories/create" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flexShrink: 0, textDecoration: 'none' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px dashed var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)', fontSize: '1.5rem' }}>
+            +
+          </div>
+          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-primary)', color: 'var(--color-text-secondary)' }}>My Story</span>
+        </Link>
+        
+        {/* Friend Stories */}
+        {friends.map(f => (
+          <Link key={f.friend._id} href={`/stories/${f.friend._id}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flexShrink: 0, textDecoration: 'none' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '3px solid var(--color-accent)', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--color-bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-primary)', fontSize: '1.25rem', fontFamily: 'var(--font-display)' }}>
+                {f.friend.displayName.charAt(0).toUpperCase()}
+              </div>
+            </div>
+            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-primary)', color: 'var(--color-text-secondary)', maxWidth: '64px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {f.friend.displayName}
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="page-content" style={{ paddingBottom: '100px', paddingTop: '1rem' }}>
         {friends.length === 0 ? (
           <div className="empty-state">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

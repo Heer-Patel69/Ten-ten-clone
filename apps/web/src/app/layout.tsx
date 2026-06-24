@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Playfair_Display, Lora } from 'next/font/google';
+import { Playfair_Display, Manrope, Inter } from 'next/font/google';
 import '@/styles/globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SocketProvider } from '@/contexts/SocketContext';
@@ -11,11 +11,16 @@ const playfair = Playfair_Display({
   style: ['normal', 'italic']
 });
 
-const lora = Lora({
+const manrope = Manrope({
   subsets: ['latin'],
-  variable: '--font-lora',
+  variable: '--font-manrope',
   weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic']
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -58,7 +63,7 @@ export default function RootLayout({
         <meta name="HandheldFriendly" content="true" />
         <meta name="MobileOptimized" content="width" />
       </head>
-      <body className={`${playfair.variable} ${lora.variable}`}>
+      <body className={`${playfair.variable} ${manrope.variable} ${inter.variable}`}>
         <div className="bg-mesh" />
         <SocketProvider>
           <AuthProvider>

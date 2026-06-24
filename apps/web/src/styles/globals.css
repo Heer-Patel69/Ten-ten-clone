@@ -32,8 +32,9 @@
   --color-border-light: hsla(230, 20%, 40%, 0.3);
 
   /* Typography */
-  --font-primary: var(--font-lora), 'Times New Roman', serif;
-  --font-display: var(--font-playfair), 'Times New Roman', serif;
+  --font-primary: var(--font-manrope), 'Inter', sans-serif; /* Body, Buttons */
+  --font-display: var(--font-playfair), 'Times New Roman', serif; /* Headings */
+  --font-numbers: var(--font-inter), sans-serif; /* Numbers, Timestamps */
 
   --fs-xs: 0.75rem;
   --fs-sm: 0.875rem;
