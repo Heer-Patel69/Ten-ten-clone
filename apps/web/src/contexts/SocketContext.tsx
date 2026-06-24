@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Socket } from 'socket.io-client';
-import { getSocket } from '@/lib/socket';
+import { subscribeToSocket } from '@/lib/socket';
 import { keepAlive } from '@/lib/backgroundKeepAlive';
 
 interface SocketContextType {
@@ -23,23 +23,28 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const audioUnlocked = useRef(false);
 
   useEffect(() => {
-    // Poll for the socket instance if it's not immediately available
-    const checkSocket = () => {
-      const s = getSocket();
-      if (s && s !== socket) {
-        setSocket(s);
-        setIsConnected(s.connected);
+    return subscribeToSocket((nextSocket) => {
+      setSocket(nextSocket);
+      setIsConnected(nextSocket?.connected ?? false);
+    });
+  }, []);
 
-        s.on('connect', () => setIsConnected(true));
-        s.on('disconnect', () => setIsConnected(false));
-      }
-    };
+  useEffect(() => {
+    if (!socket) {
+      setIsConnected(false);
+      return;
+    }
 
-    const interval = setInterval(checkSocket, 500);
-    checkSocket();
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+
+    setIsConnected(socket.connected);
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
 
     return () => {
-      clearInterval(interval);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
     };
   }, [socket]);
 

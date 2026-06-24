@@ -89,11 +89,12 @@ export interface ServerToClientEvents {
   'friend:removed': (data: { userId: string }) => void;
 
   // WebRTC Signaling
-  'voice:offer': (data: { from: string; offer: RTCSessionDescriptionInit }) => void;
-  'voice:answer': (data: { from: string; answer: RTCSessionDescriptionInit }) => void;
-  'voice:ice-candidate': (data: { from: string; candidate: RTCIceCandidateInit }) => void;
-  'voice:start': (data: { from: string; displayName: string }) => void;
-  'voice:end': (data: { from: string }) => void;
+  'voice:offer': (data: { from: string; offer: RTCSessionDescriptionInit; callId?: string }) => void;
+  'voice:answer': (data: { from: string; answer: RTCSessionDescriptionInit; callId?: string }) => void;
+  'voice:ice-candidate': (data: { from: string; candidate: RTCIceCandidateInit; callId?: string }) => void;
+  'voice:start': (data: { from: string; displayName: string; callId?: string }) => void;
+  'voice:end': (data: { from: string; callId?: string }) => void;
+  'voice:unavailable': (data: { to: string; callId?: string; reason?: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -101,11 +102,11 @@ export interface ClientToServerEvents {
   'presence:online': () => void;
 
   // WebRTC Signaling
-  'voice:offer': (data: { to: string; offer: RTCSessionDescriptionInit }) => void;
-  'voice:answer': (data: { to: string; answer: RTCSessionDescriptionInit }) => void;
-  'voice:ice-candidate': (data: { to: string; candidate: RTCIceCandidateInit }) => void;
-  'voice:start': (data: { to: string }) => void;
-  'voice:end': (data: { to: string }) => void;
+  'voice:offer': (data: { to: string; offer: RTCSessionDescriptionInit; callId?: string }) => void;
+  'voice:answer': (data: { to: string; answer: RTCSessionDescriptionInit; callId?: string }) => void;
+  'voice:ice-candidate': (data: { to: string; candidate: RTCIceCandidateInit; callId?: string }) => void;
+  'voice:start': (data: { to: string; callId?: string }) => void;
+  'voice:end': (data: { to: string; callId?: string | null }) => void;
 }
 
 // --- API Response Wrapper ---

@@ -194,6 +194,15 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
               {friend.displayName} is offline
             </p>
           )}
+          {webrtc.remotePlaybackBlocked && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={webrtc.retryRemotePlayback}
+              style={{ marginTop: 'var(--space-md)' }}
+            >
+              Enable Speaker
+            </button>
+          )}
         </div>
 
         {/* Push-to-Talk Button */}

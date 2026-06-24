@@ -105,7 +105,6 @@ function getRemoteAudioElement() {
   }
 
   audioEl.autoplay = true;
-  audioEl.playsInline = true;
   audioEl.muted = false;
   audioEl.volume = 1;
   audioEl.setAttribute('playsinline', 'true');

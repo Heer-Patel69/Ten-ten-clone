@@ -144,6 +144,11 @@ export default function FriendsPage() {
               <div key={i} className="voice-wave-bar" />
             ))}
           </div>
+          {webrtc.remotePlaybackBlocked && (
+            <button className="btn btn-primary" onClick={webrtc.retryRemotePlayback}>
+              Enable Speaker
+            </button>
+          )}
         </div>
       )}
 

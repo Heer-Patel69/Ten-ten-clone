@@ -4,8 +4,91 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/env';
 import { User } from '../models/User';
 
-// Map userId -> socketId for routing messages
-const onlineUsers = new Map<string, string>();
+// Map userId -> active socket ids. A user can have the PWA open in multiple tabs/devices.
+const onlineUsers = new Map<string, Set<string>>();
+
+interface ActiveCall {
+  callerUserId: string;
+  callerSocketId: string;
+  calleeUserId: string;
+  calleeSocketId: string;
+}
+
+const activeCalls = new Map<string, ActiveCall>();
+
+function addUserSocket(userId: string, socketId: string) {
+  const sockets = onlineUsers.get(userId) ?? new Set<string>();
+  const wasOffline = sockets.size === 0;
+
+  sockets.add(socketId);
+  onlineUsers.set(userId, sockets);
+
+  return wasOffline;
+}
+
+function removeUserSocket(userId: string, socketId: string) {
+  const sockets = onlineUsers.get(userId);
+  if (!sockets) return true;
+
+  sockets.delete(socketId);
+
+  if (sockets.size === 0) {
+    onlineUsers.delete(userId);
+    return true;
+  }
+
+  return false;
+}
+
+function getPrimarySocketId(userId: string) {
+  const sockets = onlineUsers.get(userId);
+  if (!sockets?.size) return null;
+
+  const socketIds = Array.from(sockets);
+  return socketIds[socketIds.length - 1] ?? null;
+}
+
+function emitToUser(io: Server, userId: string, event: string, payload: unknown) {
+  const sockets = onlineUsers.get(userId);
+  if (!sockets?.size) return false;
+
+  sockets.forEach((socketId) => {
+    io.to(socketId).emit(event, payload);
+  });
+
+  return true;
+}
+
+function makeCallId(socketId: string) {
+  return `${socketId}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+function notifyVoiceUnavailable(
+  socket: Socket,
+  to: string,
+  callId: string | undefined,
+  reason: string
+) {
+  socket.emit('voice:unavailable', { to, callId, reason });
+}
+
+function endCallsForSocket(io: Server, socketId: string) {
+  for (const [callId, call] of activeCalls) {
+    if (call.callerSocketId === socketId) {
+      io.to(call.calleeSocketId).emit('voice:end', {
+        from: call.callerUserId,
+        callId,
+      });
+      activeCalls.delete(callId);
+    } else if (call.calleeSocketId === socketId) {
+      io.to(call.callerSocketId).emit('voice:end', {
+        from: call.calleeUserId,
+        callId,
+      });
+      activeCalls.delete(callId);
+    }
+  }
+}
 
 export function setupSocket(httpServer: HttpServer): Server {
   const io = new Server(httpServer, {
@@ -16,7 +99,6 @@ export function setupSocket(httpServer: HttpServer): Server {
     },
   });
 
-  // Auth middleware for socket connections
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
@@ -43,78 +125,147 @@ export function setupSocket(httpServer: HttpServer): Server {
     const userId = (socket as any).userId as string;
     const displayName = (socket as any).displayName as string;
 
-    console.log(`🟢 User connected: ${displayName} (${userId})`);
+    console.log(`User connected: ${displayName} (${userId})`);
 
-    // Track online status
-    onlineUsers.set(userId, socket.id);
+    const wasOffline = addUserSocket(userId, socket.id);
     await User.findByIdAndUpdate(userId, { isOnline: true });
 
-    // Notify friends that this user is online
-    notifyFriendsPresence(io, userId, true);
+    if (wasOffline) {
+      notifyFriendsPresence(io, userId, true);
+    }
 
     // --- PRESENCE ---
-    socket.on('presence:online', () => {
-      onlineUsers.set(userId, socket.id);
+    socket.on('presence:online', async () => {
+      const wasOfflineOnPing = addUserSocket(userId, socket.id);
+
+      if (wasOfflineOnPing) {
+        await User.findByIdAndUpdate(userId, { isOnline: true });
+        notifyFriendsPresence(io, userId, true);
+      }
     });
 
     // --- WEBRTC SIGNALING ---
+    socket.on('voice:start', (data: { to: string; callId?: string }) => {
+      const callId = data.callId ?? makeCallId(socket.id);
+      const targetSocketId = getPrimarySocketId(data.to);
 
-    // User starts talking to a friend
-    socket.on('voice:start', (data: { to: string }) => {
-      const targetSocketId = onlineUsers.get(data.to);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('voice:start', {
-          from: userId,
-          displayName,
-        });
+      if (!targetSocketId) {
+        notifyVoiceUnavailable(socket, data.to, callId, 'Friend is not reachable');
+        return;
       }
+
+      activeCalls.set(callId, {
+        callerUserId: userId,
+        callerSocketId: socket.id,
+        calleeUserId: data.to,
+        calleeSocketId: targetSocketId,
+      });
+
+      io.to(targetSocketId).emit('voice:start', {
+        from: userId,
+        displayName,
+        callId,
+      });
     });
 
-    // WebRTC offer
-    socket.on('voice:offer', (data: { to: string; offer: any }) => {
-      const targetSocketId = onlineUsers.get(data.to);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('voice:offer', {
-          from: userId,
-          offer: data.offer,
-        });
+    socket.on('voice:offer', (data: { to: string; offer: any; callId?: string }) => {
+      const callId = data.callId ?? makeCallId(socket.id);
+      let call = activeCalls.get(callId);
+      const targetSocketId = call?.calleeSocketId ?? getPrimarySocketId(data.to);
+
+      if (!targetSocketId) {
+        notifyVoiceUnavailable(socket, data.to, callId, 'Friend is not reachable');
+        return;
       }
+
+      if (!call) {
+        call = {
+          callerUserId: userId,
+          callerSocketId: socket.id,
+          calleeUserId: data.to,
+          calleeSocketId: targetSocketId,
+        };
+        activeCalls.set(callId, call);
+      }
+
+      io.to(targetSocketId).emit('voice:offer', {
+        from: userId,
+        offer: data.offer,
+        callId,
+      });
     });
 
-    // WebRTC answer
-    socket.on('voice:answer', (data: { to: string; answer: any }) => {
-      const targetSocketId = onlineUsers.get(data.to);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('voice:answer', {
-          from: userId,
-          answer: data.answer,
-        });
+    socket.on('voice:answer', (data: { to: string; answer: any; callId?: string }) => {
+      const call = data.callId ? activeCalls.get(data.callId) : undefined;
+      const targetSocketId = call?.callerSocketId ?? getPrimarySocketId(data.to);
+
+      if (!targetSocketId) {
+        notifyVoiceUnavailable(socket, data.to, data.callId, 'Caller is not reachable');
+        return;
       }
+
+      io.to(targetSocketId).emit('voice:answer', {
+        from: userId,
+        answer: data.answer,
+        callId: data.callId,
+      });
     });
 
-    // ICE candidate exchange
-    socket.on('voice:ice-candidate', (data: { to: string; candidate: any }) => {
-      const targetSocketId = onlineUsers.get(data.to);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('voice:ice-candidate', {
-          from: userId,
-          candidate: data.candidate,
-        });
+    socket.on('voice:ice-candidate', (data: { to: string; candidate: any; callId?: string }) => {
+      const call = data.callId ? activeCalls.get(data.callId) : undefined;
+      let targetSocketId: string | null = null;
+
+      if (call) {
+        targetSocketId =
+          socket.id === call.callerSocketId ? call.calleeSocketId : call.callerSocketId;
+      } else {
+        targetSocketId = getPrimarySocketId(data.to);
       }
+
+      if (!targetSocketId) {
+        notifyVoiceUnavailable(socket, data.to, data.callId, 'Peer is not reachable');
+        return;
+      }
+
+      io.to(targetSocketId).emit('voice:ice-candidate', {
+        from: userId,
+        candidate: data.candidate,
+        callId: data.callId,
+      });
     });
 
-    // User stops talking
-    socket.on('voice:end', (data: { to: string }) => {
-      const targetSocketId = onlineUsers.get(data.to);
+    socket.on('voice:end', (data: { to: string; callId?: string | null }) => {
+      const call = data.callId ? activeCalls.get(data.callId) : undefined;
+      let targetSocketId: string | null = null;
+
+      if (call) {
+        targetSocketId =
+          socket.id === call.callerSocketId ? call.calleeSocketId : call.callerSocketId;
+      } else {
+        targetSocketId = getPrimarySocketId(data.to);
+      }
+
       if (targetSocketId) {
-        io.to(targetSocketId).emit('voice:end', { from: userId });
+        io.to(targetSocketId).emit('voice:end', {
+          from: userId,
+          callId: data.callId ?? undefined,
+        });
+      }
+
+      if (data.callId) {
+        activeCalls.delete(data.callId);
       }
     });
 
     // --- DISCONNECT ---
     socket.on('disconnect', async () => {
-      console.log(`🔴 User disconnected: ${displayName} (${userId})`);
-      onlineUsers.delete(userId);
+      console.log(`User disconnected: ${displayName} (${userId})`);
+
+      endCallsForSocket(io, socket.id);
+
+      const isOffline = removeUserSocket(userId, socket.id);
+      if (!isOffline) return;
+
       await User.findByIdAndUpdate(userId, {
         isOnline: false,
         lastSeen: new Date(),
@@ -126,14 +277,12 @@ export function setupSocket(httpServer: HttpServer): Server {
   return io;
 }
 
-// Helper: notify all friends about online/offline status
 async function notifyFriendsPresence(
   io: Server,
   userId: string,
   isOnline: boolean
 ) {
   try {
-    // Import here to avoid circular dependency
     const { Friendship } = await import('../models/Friendship');
 
     const friendships = await Friendship.find({
@@ -141,22 +290,19 @@ async function notifyFriendsPresence(
       status: 'accepted',
     });
 
-    for (const f of friendships) {
+    for (const friendship of friendships) {
       const friendId =
-        f.requester.toString() === userId
-          ? f.recipient.toString()
-          : f.requester.toString();
+        friendship.requester.toString() === userId
+          ? friendship.recipient.toString()
+          : friendship.requester.toString();
 
-      const friendSocketId = onlineUsers.get(friendId);
-      if (friendSocketId) {
-        if (isOnline) {
-          io.to(friendSocketId).emit('friend:online', { userId });
-        } else {
-          io.to(friendSocketId).emit('friend:offline', {
-            userId,
-            lastSeen: new Date().toISOString(),
-          });
-        }
+      if (isOnline) {
+        emitToUser(io, friendId, 'friend:online', { userId });
+      } else {
+        emitToUser(io, friendId, 'friend:offline', {
+          userId,
+          lastSeen: new Date().toISOString(),
+        });
       }
     }
   } catch (error) {
@@ -164,4 +310,4 @@ async function notifyFriendsPresence(
   }
 }
 
-export { onlineUsers };
+export { activeCalls, onlineUsers };

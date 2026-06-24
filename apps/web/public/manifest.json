@@ -1,12 +1,15 @@
 {
+  "id": "/friends",
   "name": "WalkieTalk",
   "short_name": "WalkieTalk",
-  "description": "Live voice chat with friends — like a walkie-talkie on your phone",
-  "start_url": "/",
+  "description": "Live voice chat with friends, like a walkie-talkie on your phone",
+  "start_url": "/friends?source=pwa",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#121420",
   "theme_color": "#1acd8a",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["communication", "social"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
