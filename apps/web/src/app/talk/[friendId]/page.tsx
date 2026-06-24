@@ -250,7 +250,7 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
             </svg>
           </button>
           <p className="ptt-label">
-            Hold to Talk
+            {webrtc.isTalking ? "Tap to Stop" : "Tap to Talk"}
           </p>
         </div>
       </div>
