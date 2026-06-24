@@ -149,6 +149,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
   const [isReceiving, setIsReceiving] = useState(false);
   const [activePeerId, setActivePeerId] = useState<string | null>(null);
   const [remotePlaybackBlocked, setRemotePlaybackBlocked] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
   const { socket } = useSocket();
   const optionsRef = useRef(options);
@@ -161,6 +162,11 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
+
+  const addDebugLog = useCallback((msg: string) => {
+    console.log(`[WebRTC] ${msg}`);
+    setDebugLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`].slice(-10));
+  }, []);
 
   const processPendingCandidates = useCallback(async () => {
     const pc = peerConnectionRef.current;
@@ -232,6 +238,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
       setIsTalking(true);
       setActivePeerId(friendId);
+      addDebugLog(`Requesting microphone...`);
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -241,6 +248,13 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
             autoGainControl: true,
           },
         });
+
+        // Check if user released button before mic returned
+        if (activePeerIdRef.current !== friendId) {
+          addDebugLog(`Call aborted before microphone initialized`);
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
 
         localStreamRef.current = stream;
 
@@ -260,15 +274,18 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
           callId,
           offer: pc.localDescription ?? offer,
         });
+        
+        addDebugLog(`Microphone acquired. Offer sent to ${friendId}`);
 
         if (navigator.vibrate) navigator.vibrate(50);
       } catch (error) {
+        addDebugLog(`Microphone access failed: ${error}`);
         console.error('Failed to start talking:', error);
         alert('Microphone access denied or failed! Please allow microphone permissions in your browser settings to use WalkieTalk.');
         cleanup();
       }
     },
-    [cleanup, createPeerConnection, socket]
+    [cleanup, createPeerConnection, socket, addDebugLog]
   );
 
   const stopTalking = useCallback(() => {
@@ -308,6 +325,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
       activePeerIdRef.current = data.from;
       setIsReceiving(true);
       setActivePeerId(data.from);
+      addDebugLog(`Incoming voice from ${data.from}`);
       optionsRef.current.onIncomingVoice?.(data.from, data.displayName);
     };
 
@@ -325,13 +343,23 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
         activePeerIdRef.current = data.from;
         setIsReceiving(true);
         setActivePeerId(data.from);
+        addDebugLog(`Received offer from ${data.from}`);
 
         const pc = createPeerConnection(data.from, callId);
         peerConnectionRef.current = pc;
+        
+        // Fix for Safari: explicitly request receiving audio even if not sending
+        pc.addTransceiver('audio', { direction: 'recvonly' });
 
         pc.ontrack = (event) => {
+          addDebugLog(`Received remote audio track`);
           const stream = event.streams[0] ?? new MediaStream([event.track]);
           void playRemoteStream(stream).then((played) => {
+            if (played) {
+              addDebugLog(`Audio playback started`);
+            } else {
+              addDebugLog(`Audio playback BLOCKED by browser`);
+            }
             setRemotePlaybackBlocked(!played);
           });
         };
@@ -347,6 +375,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
           callId,
           answer: pc.localDescription ?? answer,
         });
+        addDebugLog(`Sent answer back to ${data.from}`);
       } catch (error) {
         console.error('Failed to handle voice offer:', error);
         cleanup();
@@ -362,6 +391,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
         const pc = peerConnectionRef.current;
 
         if (pc && !pc.remoteDescription) {
+          addDebugLog(`Received answer from ${data.from}. Setting description...`);
           await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
           await processPendingCandidates();
         }
@@ -384,6 +414,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
       try {
         await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        addDebugLog(`Added remote ICE candidate`);
       } catch (error) {
         console.error('Failed to handle ICE candidate:', error);
       }
@@ -424,13 +455,14 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
       socket.off('voice:end', handleVoiceEnd);
       socket.off('voice:unavailable', handleVoiceUnavailable);
     };
-  }, [cleanup, createPeerConnection, processPendingCandidates, socket]);
+  }, [cleanup, createPeerConnection, processPendingCandidates, socket, addDebugLog]);
 
   return {
     isTalking,
     isReceiving,
     activePeerId,
     remotePlaybackBlocked,
+    debugLogs,
     startTalking,
     stopTalking,
     setupListeners,

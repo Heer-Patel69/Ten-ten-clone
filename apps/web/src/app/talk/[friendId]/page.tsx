@@ -241,6 +241,29 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
           </p>
         </div>
       </div>
+      {/* Debug Panel */}
+      <div style={{
+        margin: 'var(--space-md)',
+        padding: 'var(--space-md)',
+        background: '#1a1a1a',
+        borderRadius: 'var(--radius-md)',
+        color: '#00ff00',
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        maxHeight: '150px',
+        overflowY: 'auto',
+        textAlign: 'left'
+      }}>
+        <div style={{ color: '#fff', marginBottom: '4px', fontWeight: 'bold' }}>Diagnostics (Project Hell Hole)</div>
+        {webrtc.debugLogs.length === 0 ? (
+          <div style={{ color: '#888' }}>Waiting for activity...</div>
+        ) : (
+          webrtc.debugLogs.map((log, i) => (
+            <div key={i}>{log}</div>
+          ))
+        )}
+      </div>
+
     </div>
   );
 }
