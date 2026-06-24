@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocket } from '@/contexts/SocketContext';
 import { IMessage } from '@tentenclone/shared/types';
 import Link from 'next/link';
 import HoldToViewImage from '@/components/HoldToViewImage';
+import VideoCallModal from '@/components/VideoCallModal';
 
 export default function ChatPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -18,6 +19,9 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const [inputText, setInputText] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [anonymousName, setAnonymousName] = useState('');
+  const searchParams = useSearchParams();
+  const isGroup = searchParams.get('isGroup') === 'true';
+  const [isVideoCalling, setIsVideoCalling] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -92,7 +96,8 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       },
       body: JSON.stringify({
-        receiverId: peerId, // Assuming 1-on-1 for now
+        receiverId: isGroup ? undefined : peerId,
+        groupId: isGroup ? peerId : undefined,
         content: inputText,
         type: 'TEXT',
         isAnonymous,
@@ -136,7 +141,8 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          receiverId: peerId,
+          receiverId: isGroup ? undefined : peerId,
+          groupId: isGroup ? peerId : undefined,
           content: base64String,
           type: 'IMAGE',
           isAnonymous,
@@ -153,14 +159,30 @@ export default function ChatPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: 0 }}>
+      {isVideoCalling && (
+        <VideoCallModal 
+          peerId={peerId} 
+          isGroup={isGroup} 
+          onClose={() => setIsVideoCalling(false)} 
+        />
+      )}
+
       {/* Header */}
       <header className="card" style={{ padding: 'var(--space-md)', borderRadius: 0, borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/friends" className="btn" style={{ padding: '0.25rem 0.5rem', fontFamily: 'var(--font-primary)' }}>← Back</Link>
           <h2 style={{ fontFamily: 'var(--font-display)', margin: 0, fontStyle: 'italic', color: 'var(--color-accent)' }}>
-            Secret Chat
+            {isGroup ? 'Group Chat' : 'Secret Chat'}
           </h2>
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button 
+              onClick={() => setIsVideoCalling(true)}
+              className="btn" 
+              style={{ padding: '0.25rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>videocam</span>
+              Call
+            </button>
             <label style={{ fontSize: 'var(--fs-xs)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontFamily: 'var(--font-primary)' }}>
               <input type="checkbox" checked={isAnonymous} onChange={handleToggleAnonymous} />
               Ghost Mode

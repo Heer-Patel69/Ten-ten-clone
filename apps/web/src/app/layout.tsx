@@ -3,6 +3,8 @@ import { Playfair_Display, Manrope, Inter } from 'next/font/google';
 import '@/styles/globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SocketProvider } from '@/contexts/SocketContext';
+import TopNav from '@/components/TopNav';
+import BottomNav from '@/components/BottomNav';
 
 const playfair = Playfair_Display({ 
   subsets: ['latin'],
@@ -55,6 +57,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -67,7 +70,9 @@ export default function RootLayout({
         <div className="bg-mesh" />
         <SocketProvider>
           <AuthProvider>
+            <TopNav />
             {children}
+            <BottomNav />
           </AuthProvider>
         </SocketProvider>
       </body>

@@ -182,6 +182,25 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Groups
+  async getGroups() {
+    return this.request<any>('/api/groups');
+  }
+
+  async createGroup(name: string, isPublic: boolean = false) {
+    return this.request<any>('/api/groups/create', {
+      method: 'POST',
+      body: JSON.stringify({ name, isPublic })
+    });
+  }
+
+  async joinGroup(code: string) {
+    return this.request<any>('/api/groups/join', {
+      method: 'POST',
+      body: JSON.stringify({ code })
+    });
+  }
 }
 
 export const api = new ApiClient();

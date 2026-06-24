@@ -24,6 +24,7 @@ export default function FriendsPage() {
   const { socket, isConnected } = useSocket();
   const router = useRouter();
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [incomingVoice, setIncomingVoice] = useState<{ from: string; name: string } | null>(null);
@@ -39,12 +40,14 @@ export default function FriendsPage() {
 
   const fetchFriends = useCallback(async () => {
     try {
-      const [friendsRes, requestsRes] = await Promise.all([
+      const [friendsRes, requestsRes, groupsRes] = await Promise.all([
         api.getFriends(),
         api.getFriendRequests(),
+        api.getGroups()
       ]);
-      setFriends(friendsRes.data.friends);
-      setPendingCount(requestsRes.data.requests.length);
+      setFriends(friendsRes.data.friends || []);
+      setPendingCount(requestsRes.data.requests?.length || 0);
+      setGroups(groupsRes.data || []);
     } catch (err) {
       console.error('Failed to fetch friends:', err);
     } finally {
@@ -154,20 +157,17 @@ export default function FriendsPage() {
 
       <div className="page-header" style={{ marginBottom: '0.5rem' }}>
         <h1 className="page-title" style={{ fontFamily: 'var(--font-display)' }}>Friends</h1>
-        <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-          <Link href="/groups/join" className="btn btn-sm" style={{ fontFamily: 'var(--font-primary)' }}>
-            Join Group
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <Link href="/groups/join" className="btn btn-sm btn-icon" title="Join Group" style={{ padding: '0.5rem', borderRadius: '50%' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>login</span>
           </Link>
-          <Link href="/groups/create" className="btn btn-sm" style={{ fontFamily: 'var(--font-primary)' }}>
-            Create Group
+          <Link href="/groups/create" className="btn btn-sm btn-icon" title="Create Group" style={{ padding: '0.5rem', borderRadius: '50%' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>group_add</span>
           </Link>
-          <Link href="/add-friend" className="btn btn-primary btn-sm" style={{ position: 'relative', fontFamily: 'var(--font-primary)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Add
+          <Link href="/add-friend" className="btn btn-primary btn-sm btn-icon" title="Add Friend" style={{ position: 'relative', padding: '0.5rem', borderRadius: '50%' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>person_add</span>
             {pendingCount > 0 && (
-              <span className="badge badge-danger" style={{ position: 'absolute', top: '-6px', right: '-6px', minWidth: '18px', height: '18px', fontSize: '10px', padding: '0 4px' }}>
+              <span className="badge badge-danger" style={{ position: 'absolute', top: '-4px', right: '-4px', minWidth: '18px', height: '18px', fontSize: '10px', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
                 {pendingCount}
               </span>
             )}
@@ -222,7 +222,7 @@ export default function FriendsPage() {
                 key={f.friendshipId}
                 className={`friend-card stagger-item`}
                 style={{ animationDelay: `${index * 0.05}s` }}
-                onClick={() => router.push(`/talk/${f.friend._id}`)}
+                onClick={() => router.push(`/chat/${f.friend._id}`)}
               >
                 <div className="avatar">
                   {f.friend.displayName.charAt(0)}
@@ -235,56 +235,71 @@ export default function FriendsPage() {
                   </div>
                   <div className="friend-code">#{f.friend.userCode}</div>
                 </div>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/talk/${f.friend._id}`);
-                  }}
-                  style={{ flexShrink: 0 }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                  </svg>
-                  Talk
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/talk/${f.friend._id}`);
+                    }}
+                    style={{ padding: '0.25rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>mic</span>
+                    Talk
+                  </button>
+                  <button
+                    className="btn btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/chat/${f.friend._id}`);
+                    }}
+                    style={{ padding: '0.25rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chat</span>
+                    Chat
+                  </button>
+                </div>
               </div>
             ))}
+            
+            {groups.length > 0 && (
+              <>
+                <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 'var(--space-md)' }}>My Groups</h3>
+                {groups.map((g, index) => (
+                  <div
+                    key={g._id}
+                    className={`friend-card stagger-item`}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                    onClick={() => router.push(`/chat/${g._id}?isGroup=true`)}
+                  >
+                    <div className="avatar" style={{ background: 'var(--color-accent)' }}>
+                      {g.name.charAt(0)}
+                    </div>
+                    <div className="friend-info">
+                      <div className="friend-name">{g.name}</div>
+                      <div className="friend-status">
+                        {g.members.length} members
+                      </div>
+                      <div className="friend-code">Code: {g.code}</div>
+                    </div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/chat/${g._id}?isGroup=true`);
+                      }}
+                      style={{ flexShrink: 0 }}
+                    >
+                      Chat
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="nav-bar">
-        <div className="nav-bar-inner">
-          <Link href="/friends" className="nav-item active">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            Friends
-          </Link>
-          <Link href="/add-friend" className="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-            Add
-          </Link>
-          <Link href="/profile" className="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            Profile
-          </Link>
-        </div>
-      </nav>
     </div>
   );
 }
