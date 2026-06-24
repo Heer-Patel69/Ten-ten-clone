@@ -77,6 +77,44 @@ export interface IReport {
   updatedAt: string;
 }
 
+// --- Messages & Chat ---
+export type MessageType = 'TEXT' | 'IMAGE' | 'GIF' | 'STICKER';
+
+export interface IMessage {
+  _id: string;
+  senderId: string | IUserPublic;
+  receiverId?: string | IUserPublic;
+  groupId?: string | IGroup;
+  content: string; // Encrypted text or Base64
+  type: MessageType;
+  isAnonymous: boolean;
+  anonymousName?: string;
+  isViewed: boolean;
+  createdAt: string;
+}
+
+// --- Groups ---
+export interface IGroup {
+  _id: string;
+  name: string;
+  code: string;
+  isPublic: boolean;
+  adminId: string | IUserPublic;
+  members: (string | IUserPublic)[];
+  createdAt: string;
+}
+
+// --- Stories ---
+export type StoryType = 'IMAGE' | 'VIDEO' | 'TEXT';
+
+export interface IStory {
+  _id: string;
+  userId: string | IUserPublic;
+  mediaUrl: string;
+  type: StoryType;
+  createdAt: string;
+}
+
 // --- Socket Events ---
 export interface ServerToClientEvents {
   // Presence
@@ -95,6 +133,11 @@ export interface ServerToClientEvents {
   'voice:start': (data: { from: string; displayName: string; callId?: string }) => void;
   'voice:end': (data: { from: string; callId?: string }) => void;
   'voice:unavailable': (data: { to: string; callId?: string; reason?: string }) => void;
+
+  // Chat
+  'chat:receive': (data: { message: IMessage }) => void;
+  'chat:viewed': (data: { messageId: string, from: string }) => void;
+  'chat:typing': (data: { from: string, groupId?: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -107,6 +150,11 @@ export interface ClientToServerEvents {
   'voice:ice-candidate': (data: { to: string; candidate: RTCIceCandidateInit; callId?: string }) => void;
   'voice:start': (data: { to: string; callId?: string }) => void;
   'voice:end': (data: { to: string; callId?: string | null }) => void;
+
+  // Chat
+  'chat:send': (data: { to?: string; groupId?: string; content: string; type: MessageType; isAnonymous?: boolean; anonymousName?: string }) => void;
+  'chat:view': (data: { messageId: string }) => void;
+  'chat:typing': (data: { to?: string; groupId?: string }) => void;
 }
 
 // --- API Response Wrapper ---

@@ -235,26 +235,41 @@ export function setupSocket(httpServer: HttpServer): Server {
     });
 
     socket.on('voice:end', (data: { to: string; callId?: string | null }) => {
-      const call = data.callId ? activeCalls.get(data.callId) : undefined;
-      let targetSocketId: string | null = null;
-
-      if (call) {
-        targetSocketId =
-          socket.id === call.callerSocketId ? call.calleeSocketId : call.callerSocketId;
-      } else {
-        targetSocketId = getPrimarySocketId(data.to);
+      // Find and remove the active call
+      for (const [callId, call] of activeCalls.entries()) {
+        if (
+          (call.callerSocketId === socket.id && call.calleeUserId === data.to) ||
+          (call.calleeSocketId === socket.id && call.callerUserId === data.to)
+        ) {
+          activeCalls.delete(callId);
+        }
       }
 
+      const targetSocketId = getPrimarySocketId(data.to);
       if (targetSocketId) {
-        io.to(targetSocketId).emit('voice:end', {
-          from: userId,
-          callId: data.callId ?? undefined,
-        });
+        io.to(targetSocketId).emit('voice:end', { from: userId, callId: data.callId });
       }
+    });
 
-      if (data.callId) {
-        activeCalls.delete(data.callId);
+    // --- CHAT SIGNALING ---
+    socket.on('chat:typing', (data: { to?: string; groupId?: string }) => {
+      if (data.groupId) {
+        socket.to(data.groupId).emit('chat:typing', { from: userId, groupId: data.groupId });
+      } else if (data.to) {
+        const targetSocketId = getPrimarySocketId(data.to);
+        if (targetSocketId) {
+          io.to(targetSocketId).emit('chat:typing', { from: userId });
+        }
       }
+    });
+
+    // Allow users to explicitly join group rooms when they open a group
+    socket.on('group:join', (data: { groupId: string }) => {
+      socket.join(data.groupId);
+    });
+
+    socket.on('group:leave', (data: { groupId: string }) => {
+      socket.leave(data.groupId);
     });
 
     // --- DISCONNECT ---

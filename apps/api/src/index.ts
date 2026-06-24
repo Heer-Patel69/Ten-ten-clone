@@ -8,6 +8,9 @@ import { setupSocket } from './socket';
 import authRoutes from './routes/auth';
 import friendsRoutes from './routes/friends';
 import adminRoutes from './routes/admin';
+import chatRouter from './routes/chat';
+import groupsRouter from './routes/groups';
+import exploreRouter from './routes/explore';
 
 const app = express();
 const server = http.createServer(app);
@@ -32,6 +35,9 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRouter);
+app.use('/api/groups', groupsRouter);
+app.use('/api/explore', exploreRouter);
 
 // Socket.io
 const io = setupSocket(server);

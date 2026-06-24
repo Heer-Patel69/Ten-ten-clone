@@ -1,7 +1,22 @@
 import type { Metadata, Viewport } from 'next';
+import { Playfair_Display, Lora } from 'next/font/google';
 import '@/styles/globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SocketProvider } from '@/contexts/SocketContext';
+
+const playfair = Playfair_Display({ 
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic']
+});
+
+const lora = Lora({
+  subsets: ['latin'],
+  variable: '--font-lora',
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic']
+});
 
 export const metadata: Metadata = {
   title: 'WalkieTalk — Live Voice Chat',
@@ -43,7 +58,7 @@ export default function RootLayout({
         <meta name="HandheldFriendly" content="true" />
         <meta name="MobileOptimized" content="width" />
       </head>
-      <body>
+      <body className={`${playfair.variable} ${lora.variable}`}>
         <div className="bg-mesh" />
         <SocketProvider>
           <AuthProvider>

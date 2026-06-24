@@ -64,20 +64,12 @@ const iceServers: RTCIceServer[] = [
   },
 ];
 
-const turnUrls = process.env.NEXT_PUBLIC_TURN_URLS
-  ?.split(',')
-  .map((url) => url.trim())
-  .filter(Boolean);
+const turnUrls = process.env.NEXT_PUBLIC_TURN_URLS?.split(',').map((url) => url.trim()).filter(Boolean);
 
 if (turnUrls?.length) {
   const username = process.env.NEXT_PUBLIC_TURN_USERNAME;
   const credential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
-
-  iceServers.push(
-    username && credential
-      ? { urls: turnUrls, username, credential }
-      : { urls: turnUrls }
-  );
+  iceServers.push(username && credential ? { urls: turnUrls, username, credential } : { urls: turnUrls });
 }
 
 const rtcConfig: RTCConfiguration = {
@@ -89,7 +81,6 @@ function createCallId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
   }
-
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
@@ -97,7 +88,6 @@ function getRemoteAudioElement() {
   if (typeof document === 'undefined') return null;
 
   let audioEl = document.getElementById('walkietalk-audio') as HTMLAudioElement | null;
-
   if (!audioEl) {
     audioEl = document.createElement('audio');
     audioEl.id = 'walkietalk-audio';
@@ -118,11 +108,7 @@ async function playRemoteStream(stream: MediaStream) {
   if (!audioEl) return false;
 
   audioEl.srcObject = stream;
-
-  const outputTarget = audioEl as HTMLAudioElement & {
-    setSinkId?: (sinkId: string) => Promise<void>;
-  };
-
+  const outputTarget = audioEl as HTMLAudioElement & { setSinkId?: (sinkId: string) => Promise<void> };
   if (outputTarget.setSinkId) {
     await outputTarget.setSinkId('default').catch(() => undefined);
   }
@@ -139,7 +125,6 @@ async function playRemoteStream(stream: MediaStream) {
 function stopRemoteAudio() {
   const audioEl = getRemoteAudioElement();
   if (!audioEl) return;
-
   audioEl.pause();
   audioEl.srcObject = null;
 }
@@ -153,11 +138,20 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
   const { socket } = useSocket();
   const optionsRef = useRef(options);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
-  const activeCallIdRef = useRef<string | null>(null);
-  const activePeerIdRef = useRef<string | null>(null);
+
+  // Split PC references into Sender and Receiver
+  const senderPCRef = useRef<RTCPeerConnection | null>(null);
+  const receiverPCRef = useRef<RTCPeerConnection | null>(null);
+
+  const sendCallIdRef = useRef<string | null>(null);
+  const receiveCallIdRef = useRef<string | null>(null);
+
+  const sendPendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const receivePendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+
+  const activeSendPeerIdRef = useRef<string | null>(null);
+  const activeReceivePeerIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     optionsRef.current = options;
@@ -168,12 +162,14 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     setDebugLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`].slice(-10));
   }, []);
 
-  const processPendingCandidates = useCallback(async () => {
-    const pc = peerConnectionRef.current;
-    if (!pc?.remoteDescription) return;
+  const updateOverallPeerId = useCallback(() => {
+    const peer = activeSendPeerIdRef.current || activeReceivePeerIdRef.current;
+    setActivePeerId(peer);
+  }, []);
 
-    const queuedCandidates = pendingCandidatesRef.current.splice(0);
-
+  const processPendingCandidates = useCallback(async (pc: RTCPeerConnection, candidates: RTCIceCandidateInit[]) => {
+    if (!pc.remoteDescription) return;
+    const queuedCandidates = candidates.splice(0);
     for (const candidate of queuedCandidates) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
@@ -183,33 +179,46 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     }
   }, []);
 
-  const cleanup = useCallback(() => {
-    // Just mute the tracks, do not stop them!
+  const cleanupSender = useCallback(() => {
+    // Mute the outgoing track
     localStreamRef.current?.getAudioTracks().forEach((track) => {
       track.enabled = false;
     });
 
-    peerConnectionRef.current?.close();
-    peerConnectionRef.current = null;
-
-    stopRemoteAudio();
-    pendingCandidatesRef.current = [];
-    activeCallIdRef.current = null;
-    activePeerIdRef.current = null;
+    senderPCRef.current?.close();
+    senderPCRef.current = null;
+    sendPendingCandidatesRef.current = [];
+    sendCallIdRef.current = null;
+    activeSendPeerIdRef.current = null;
 
     setIsTalking(false);
+    updateOverallPeerId();
+  }, [updateOverallPeerId]);
+
+  const cleanupReceiver = useCallback(() => {
+    receiverPCRef.current?.close();
+    receiverPCRef.current = null;
+    receivePendingCandidatesRef.current = [];
+    receiveCallIdRef.current = null;
+    activeReceivePeerIdRef.current = null;
+
+    stopRemoteAudio();
     setIsReceiving(false);
-    setActivePeerId(null);
     setRemotePlaybackBlocked(false);
-  }, []);
+    updateOverallPeerId();
+  }, [updateOverallPeerId]);
+
+  const cleanup = useCallback(() => {
+    cleanupSender();
+    cleanupReceiver();
+  }, [cleanupSender, cleanupReceiver]);
 
   const createPeerConnection = useCallback(
-    (peerId: string, callId: string) => {
+    (peerId: string, callId: string, type: 'SEND' | 'RECEIVE') => {
       const pc = new RTCPeerConnection(rtcConfig);
 
       pc.onicecandidate = (event) => {
         if (!event.candidate || !socket) return;
-
         socket.emit('voice:ice-candidate', {
           to: peerId,
           callId,
@@ -232,25 +241,16 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     try {
       addDebugLog('Initializing persistent microphone...');
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
-      
-      // Mute the track immediately so we don't broadcast until PTT is pressed
-      stream.getAudioTracks().forEach(track => {
-        track.enabled = false;
-      });
-      
+      stream.getAudioTracks().forEach((track) => { track.enabled = false; });
       localStreamRef.current = stream;
       addDebugLog('Microphone permission granted and stream active.');
       return true;
     } catch (error) {
       addDebugLog(`Microphone init failed: ${error}`);
       console.error('Failed to initialize microphone:', error);
-      alert('Microphone access denied! You MUST allow microphone permissions to use voice chat. If it did not ask, make sure you are using the HTTPS link, not HTTP.');
+      alert('Microphone access denied! You MUST allow microphone permissions to use voice chat.');
       return false;
     }
   }, [addDebugLog]);
@@ -262,46 +262,36 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
         return;
       }
 
-      cleanup();
+      cleanupSender();
 
       const callId = createCallId();
-      activeCallIdRef.current = callId;
-      activePeerIdRef.current = friendId;
+      sendCallIdRef.current = callId;
+      activeSendPeerIdRef.current = friendId;
 
       setIsTalking(true);
-      setActivePeerId(friendId);
-      addDebugLog(`Starting call to ${friendId}...`);
+      updateOverallPeerId();
+      addDebugLog(`Starting sender call to ${friendId}...`);
 
       try {
         let stream = localStreamRef.current;
         if (!stream || stream.getTracks().length === 0) {
           addDebugLog(`No persistent stream, requesting mic...`);
           stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
           });
           localStreamRef.current = stream;
         }
 
-        // Unmute the track for broadcasting
-        stream.getAudioTracks().forEach(track => {
-          track.enabled = true;
-        });
+        stream.getAudioTracks().forEach((track) => { track.enabled = true; });
 
-        // Check if user released button before mic returned
-        if (activePeerIdRef.current !== friendId) {
+        if (activeSendPeerIdRef.current !== friendId) {
           addDebugLog(`Call aborted before WebRTC initialized`);
-          stream.getAudioTracks().forEach(track => {
-            track.enabled = false;
-          });
+          stream.getAudioTracks().forEach((track) => { track.enabled = false; });
           return;
         }
 
-        const pc = createPeerConnection(friendId, callId);
-        peerConnectionRef.current = pc;
+        const pc = createPeerConnection(friendId, callId, 'SEND');
+        senderPCRef.current = pc;
 
         stream.getTracks().forEach((track) => {
           pc.addTrack(track, stream);
@@ -311,37 +301,29 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
         await pc.setLocalDescription(offer);
 
         socket.emit('voice:start', { to: friendId, callId });
-        socket.emit('voice:offer', {
-          to: friendId,
-          callId,
-          offer: pc.localDescription ?? offer,
-        });
+        socket.emit('voice:offer', { to: friendId, callId, offer: pc.localDescription ?? offer });
         
-        addDebugLog(`Microphone acquired. Offer sent to ${friendId}`);
-
+        addDebugLog(`Sender Offer sent to ${friendId}`);
         if (navigator.vibrate) navigator.vibrate(50);
       } catch (error) {
         addDebugLog(`Microphone access failed: ${error}`);
-        console.error('Failed to start talking:', error);
-        alert('Microphone access denied or failed! Please allow microphone permissions in your browser settings to use WalkieTalk.');
-        cleanup();
+        cleanupSender();
       }
     },
-    [cleanup, createPeerConnection, socket, addDebugLog]
+    [cleanupSender, createPeerConnection, socket, addDebugLog, updateOverallPeerId]
   );
 
   const stopTalking = useCallback(() => {
-    const peerId = activePeerIdRef.current ?? activePeerId;
-    const callId = activeCallIdRef.current;
+    const peerId = activeSendPeerIdRef.current;
+    const callId = sendCallIdRef.current;
 
     if (socket && peerId) {
       socket.emit('voice:end', { to: peerId, callId });
     }
 
-    cleanup();
-
+    cleanupSender();
     if (navigator.vibrate) navigator.vibrate(30);
-  }, [activePeerId, cleanup, socket]);
+  }, [cleanupSender, socket]);
 
   const retryRemotePlayback = useCallback(async () => {
     const audioEl = getRemoteAudioElement();
@@ -359,38 +341,36 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     if (!socket) return () => {};
 
     const handleVoiceStart = (data: VoiceStartPayload) => {
-      if (activeCallIdRef.current && activeCallIdRef.current !== data.callId) {
-        cleanup();
+      // Receiver side starts
+      if (receiveCallIdRef.current && receiveCallIdRef.current !== data.callId) {
+        cleanupReceiver();
       }
-
-      activeCallIdRef.current = data.callId ?? activeCallIdRef.current;
-      activePeerIdRef.current = data.from;
+      receiveCallIdRef.current = data.callId ?? receiveCallIdRef.current;
+      activeReceivePeerIdRef.current = data.from;
+      
       setIsReceiving(true);
-      setActivePeerId(data.from);
+      updateOverallPeerId();
       addDebugLog(`Incoming voice from ${data.from}`);
       optionsRef.current.onIncomingVoice?.(data.from, data.displayName);
     };
 
     const handleVoiceOffer = async (data: VoiceOfferPayload) => {
       if (!socket) return;
-
       const callId = data.callId ?? createCallId();
 
       try {
-        if (activeCallIdRef.current && activeCallIdRef.current !== callId) {
-          cleanup();
+        if (receiveCallIdRef.current && receiveCallIdRef.current !== callId) {
+          cleanupReceiver();
         }
 
-        activeCallIdRef.current = callId;
-        activePeerIdRef.current = data.from;
+        receiveCallIdRef.current = callId;
+        activeReceivePeerIdRef.current = data.from;
         setIsReceiving(true);
-        setActivePeerId(data.from);
+        updateOverallPeerId();
         addDebugLog(`Received offer from ${data.from}`);
 
-        const pc = createPeerConnection(data.from, callId);
-        peerConnectionRef.current = pc;
-        
-        // Fix for Safari: explicitly request receiving audio even if not sending
+        const pc = createPeerConnection(data.from, callId, 'RECEIVE');
+        receiverPCRef.current = pc;
         pc.addTransceiver('audio', { direction: 'recvonly' });
 
         pc.ontrack = (event) => {
@@ -407,35 +387,29 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
         };
 
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-        await processPendingCandidates();
+        await processPendingCandidates(pc, receivePendingCandidatesRef.current);
 
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
-        socket.emit('voice:answer', {
-          to: data.from,
-          callId,
-          answer: pc.localDescription ?? answer,
-        });
+        socket.emit('voice:answer', { to: data.from, callId, answer: pc.localDescription ?? answer });
         addDebugLog(`Sent answer back to ${data.from}`);
       } catch (error) {
         console.error('Failed to handle voice offer:', error);
-        cleanup();
+        cleanupReceiver();
       }
     };
 
     const handleVoiceAnswer = async (data: VoiceAnswerPayload) => {
-      if (data.callId && activeCallIdRef.current && data.callId !== activeCallIdRef.current) {
-        return;
-      }
+      // The answer applies to our SENDER PC
+      if (data.callId && sendCallIdRef.current && data.callId !== sendCallIdRef.current) return;
 
       try {
-        const pc = peerConnectionRef.current;
-
+        const pc = senderPCRef.current;
         if (pc && !pc.remoteDescription) {
           addDebugLog(`Received answer from ${data.from}. Setting description...`);
           await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-          await processPendingCandidates();
+          await processPendingCandidates(pc, sendPendingCandidatesRef.current);
         }
       } catch (error) {
         console.error('Failed to handle voice answer:', error);
@@ -443,14 +417,22 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     };
 
     const handleIceCandidate = async (data: VoiceIcePayload) => {
-      if (data.callId && activeCallIdRef.current && data.callId !== activeCallIdRef.current) {
-        return;
+      // Route the ICE candidate to the correct PC based on callId
+      let pc: RTCPeerConnection | null = null;
+      let pendingList: RTCIceCandidateInit[] | null = null;
+
+      if (data.callId === sendCallIdRef.current) {
+        pc = senderPCRef.current;
+        pendingList = sendPendingCandidatesRef.current;
+      } else if (data.callId === receiveCallIdRef.current) {
+        pc = receiverPCRef.current;
+        pendingList = receivePendingCandidatesRef.current;
+      } else {
+        return; // Ignore obsolete candidates
       }
 
-      const pc = peerConnectionRef.current;
-
       if (!pc?.remoteDescription) {
-        pendingCandidatesRef.current.push(data.candidate);
+        pendingList.push(data.candidate);
         return;
       }
 
@@ -463,22 +445,16 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     };
 
     const handleVoiceEnd = (data: VoiceEndPayload) => {
-      if (data.callId && activeCallIdRef.current && data.callId !== activeCallIdRef.current) {
-        return;
-      }
-
+      if (data.callId && receiveCallIdRef.current && data.callId !== receiveCallIdRef.current) return;
       const from = data.from;
-      cleanup();
+      cleanupReceiver();
       optionsRef.current.onVoiceEnd?.(from);
     };
 
     const handleVoiceUnavailable = (data: VoiceUnavailablePayload) => {
-      if (data.callId && activeCallIdRef.current && data.callId !== activeCallIdRef.current) {
-        return;
-      }
-
+      if (data.callId && sendCallIdRef.current && data.callId !== sendCallIdRef.current) return;
       console.warn('Voice call unavailable:', data.reason ?? 'Peer is not reachable');
-      cleanup();
+      cleanupSender();
       optionsRef.current.onVoiceUnavailable?.(data.reason ?? 'Peer is not reachable');
     };
 
@@ -497,7 +473,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
       socket.off('voice:end', handleVoiceEnd);
       socket.off('voice:unavailable', handleVoiceUnavailable);
     };
-  }, [cleanup, createPeerConnection, processPendingCandidates, socket, addDebugLog]);
+  }, [cleanupSender, cleanupReceiver, createPeerConnection, processPendingCandidates, socket, addDebugLog, updateOverallPeerId]);
 
   return {
     isTalking,
