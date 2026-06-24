@@ -257,7 +257,10 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
   const startTalking = useCallback(
     async (friendId: string) => {
-      if (!socket?.connected) return;
+      if (!socket?.connected) {
+        addDebugLog('ERROR: Cannot start call. Socket is disconnected!');
+        return;
+      }
 
       cleanup();
 

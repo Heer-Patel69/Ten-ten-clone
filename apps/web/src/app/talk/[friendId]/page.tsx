@@ -277,7 +277,9 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
         overflowY: 'auto',
         textAlign: 'left'
       }}>
-        <div style={{ color: '#fff', marginBottom: '4px', fontWeight: 'bold' }}>Diagnostics (Project Hell Hole)</div>
+        <div style={{ color: '#fff', marginBottom: '4px', fontWeight: 'bold' }}>
+          Diagnostics (Socket: {isConnected ? 'CONNECTED' : 'DISCONNECTED'})
+        </div>
         {webrtc.debugLogs.length === 0 ? (
           <div style={{ color: '#888' }}>Waiting for activity...</div>
         ) : (
