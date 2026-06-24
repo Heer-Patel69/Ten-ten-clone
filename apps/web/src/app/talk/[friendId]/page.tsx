@@ -21,6 +21,8 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
   const router = useRouter();
   const [friend, setFriend] = useState<FriendInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [micInitialized, setMicInitialized] = useState(false);
+  const [initLoading, setInitLoading] = useState(false);
 
   const webrtc = useWebRTC({
     onIncomingVoice: () => {},
@@ -105,6 +107,15 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
     webrtc.stopTalking();
   };
 
+  const handleInitMicrophone = async () => {
+    setInitLoading(true);
+    const success = await webrtc.initializeMicrophone();
+    if (success) {
+      setMicInitialized(true);
+    }
+    setInitLoading(false);
+  };
+
   if (authLoading || loading) {
     return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
   }
@@ -177,9 +188,23 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
           </div>
         )}
 
-        {/* Status Text */}
-        <div style={{ textAlign: 'center' }}>
-          {webrtc.isTalking ? (
+        {/* Status Text or Init Button */}
+        <div style={{ textAlign: 'center', width: '100%' }}>
+          {!micInitialized ? (
+            <div style={{ padding: 'var(--space-md)' }}>
+              <p className="text-secondary" style={{ marginBottom: 'var(--space-md)' }}>
+                You must allow microphone access to talk.
+              </p>
+              <button
+                className={`btn btn-primary ${initLoading ? 'loading' : ''}`}
+                onClick={handleInitMicrophone}
+                disabled={initLoading}
+                style={{ width: '100%' }}
+              >
+                {initLoading ? 'Requesting...' : 'Enable Microphone & Join'}
+              </button>
+            </div>
+          ) : webrtc.isTalking ? (
             <p style={{ color: 'var(--color-danger)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-lg)' }}>
               🔴 You are talking...
             </p>
@@ -187,13 +212,9 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
             <p style={{ color: 'var(--color-accent)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-lg)' }}>
               🟢 {friend.displayName} is talking...
             </p>
-          ) : friend.isOnline ? (
+          ) : (
             <p className="text-secondary">
               Hold the button to talk
-            </p>
-          ) : (
-            <p className="text-muted">
-              {friend.displayName} is offline
             </p>
           )}
           {webrtc.remotePlaybackBlocked && (
@@ -222,8 +243,10 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
               e.preventDefault();
               handlePTTEnd();
             }}
+            disabled={!micInitialized}
             style={{
-              cursor: 'pointer',
+              opacity: micInitialized ? 1 : 0.4,
+              cursor: micInitialized ? 'pointer' : 'not-allowed',
             }}
           >
             <div className="ptt-ring" />

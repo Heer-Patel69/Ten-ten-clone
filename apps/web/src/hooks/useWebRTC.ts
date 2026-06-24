@@ -184,8 +184,10 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
   }, []);
 
   const cleanup = useCallback(() => {
-    localStreamRef.current?.getTracks().forEach((track) => track.stop());
-    localStreamRef.current = null;
+    // Just mute the tracks, do not stop them!
+    localStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = false;
+    });
 
     peerConnectionRef.current?.close();
     peerConnectionRef.current = null;
@@ -226,6 +228,33 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     [socket]
   );
 
+  const initializeMicrophone = useCallback(async () => {
+    try {
+      addDebugLog('Initializing persistent microphone...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      
+      // Mute the track immediately so we don't broadcast until PTT is pressed
+      stream.getAudioTracks().forEach(track => {
+        track.enabled = false;
+      });
+      
+      localStreamRef.current = stream;
+      addDebugLog('Microphone permission granted and stream active.');
+      return true;
+    } catch (error) {
+      addDebugLog(`Microphone init failed: ${error}`);
+      console.error('Failed to initialize microphone:', error);
+      alert('Microphone access denied! You MUST allow microphone permissions to use voice chat. If it did not ask, make sure you are using the HTTPS link, not HTTP.');
+      return false;
+    }
+  }, [addDebugLog]);
+
   const startTalking = useCallback(
     async (friendId: string) => {
       if (!socket?.connected) return;
@@ -238,25 +267,35 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
       setIsTalking(true);
       setActivePeerId(friendId);
-      addDebugLog(`Requesting microphone...`);
+      addDebugLog(`Starting call to ${friendId}...`);
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
+        let stream = localStreamRef.current;
+        if (!stream || stream.getTracks().length === 0) {
+          addDebugLog(`No persistent stream, requesting mic...`);
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+          localStreamRef.current = stream;
+        }
+
+        // Unmute the track for broadcasting
+        stream.getAudioTracks().forEach(track => {
+          track.enabled = true;
         });
 
         // Check if user released button before mic returned
         if (activePeerIdRef.current !== friendId) {
-          addDebugLog(`Call aborted before microphone initialized`);
-          stream.getTracks().forEach(t => t.stop());
+          addDebugLog(`Call aborted before WebRTC initialized`);
+          stream.getAudioTracks().forEach(track => {
+            track.enabled = false;
+          });
           return;
         }
-
-        localStreamRef.current = stream;
 
         const pc = createPeerConnection(friendId, callId);
         peerConnectionRef.current = pc;
@@ -463,6 +502,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
     activePeerId,
     remotePlaybackBlocked,
     debugLogs,
+    initializeMicrophone,
     startTalking,
     stopTalking,
     setupListeners,
