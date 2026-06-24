@@ -230,6 +230,9 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
       activeCallIdRef.current = callId;
       activePeerIdRef.current = friendId;
 
+      setIsTalking(true);
+      setActivePeerId(friendId);
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: {
@@ -258,12 +261,10 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
           offer: pc.localDescription ?? offer,
         });
 
-        setIsTalking(true);
-        setActivePeerId(friendId);
-
         if (navigator.vibrate) navigator.vibrate(50);
       } catch (error) {
         console.error('Failed to start talking:', error);
+        alert('Microphone access denied or failed! Please allow microphone permissions in your browser settings to use WalkieTalk.');
         cleanup();
       }
     },
