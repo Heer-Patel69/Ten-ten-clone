@@ -1,11 +1,11 @@
-import { Router } from 'express';
-import { requireAuth } from '../middleware/auth';
+import { Router, Response } from 'express';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { Group } from '../models/Group';
 
 const router = Router();
 
 // Search for public groups
-router.get('/search', requireAuth, async (req, res) => {
+router.get('/search', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const query = req.query.q as string;
     let filter: any = { isPublic: true };
