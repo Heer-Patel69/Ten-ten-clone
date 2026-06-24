@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@tentenclone/shared/*": ["../../packages/shared/*"],
+      "@tentenclone/shared": ["../../packages/shared"]
     }
   },
   "include": [
