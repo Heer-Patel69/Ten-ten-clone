@@ -168,26 +168,32 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       )}
 
       {/* Header */}
-      <header className="card" style={{ padding: 'var(--space-md)', borderRadius: 0, borderBottom: '1px solid var(--color-border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Link href="/friends" className="btn" style={{ padding: '0.25rem 0.5rem', fontFamily: 'var(--font-primary)' }}>← Back</Link>
-          <h2 style={{ fontFamily: 'var(--font-display)', margin: 0, fontStyle: 'italic', color: 'var(--color-accent)' }}>
-            {isGroup ? 'Group Chat' : 'Secret Chat'}
-          </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button 
-              onClick={() => setIsVideoCalling(true)}
-              className="btn" 
-              style={{ padding: '0.25rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>videocam</span>
-              Call
-            </button>
-            <label style={{ fontSize: 'var(--fs-xs)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontFamily: 'var(--font-primary)' }}>
-              <input type="checkbox" checked={isAnonymous} onChange={handleToggleAnonymous} />
-              Ghost Mode
-            </label>
-          </div>
+      <header className="card" style={{ padding: 'var(--space-sm) var(--space-md)', borderRadius: 0, borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        
+        <Link href="/friends" className="btn btn-icon" title="Back" style={{ padding: '0.5rem', borderRadius: '50%', flexShrink: 0 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_back</span>
+        </Link>
+        
+        <h2 style={{ fontFamily: 'var(--font-display)', margin: 0, fontStyle: 'italic', color: 'var(--color-accent)', fontSize: '1.25rem', textAlign: 'center', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {isGroup ? 'Group Chat' : 'Secret Chat'}
+        </h2>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+          <button 
+            onClick={() => setIsVideoCalling(true)}
+            className="btn btn-icon" 
+            title="Video Call"
+            style={{ padding: '0.5rem', borderRadius: '50%' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>videocam</span>
+          </button>
+          
+          <label title="Ghost Mode" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', backgroundColor: isAnonymous ? 'var(--color-accent-dim)' : 'transparent', color: isAnonymous ? 'var(--color-accent)' : 'var(--color-text-secondary)', transition: 'all 0.2s' }}>
+            <input type="checkbox" checked={isAnonymous} onChange={handleToggleAnonymous} style={{ display: 'none' }} />
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              {isAnonymous ? 'visibility_off' : 'visibility'}
+            </span>
+          </label>
         </div>
         {isAnonymous && (
           <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--color-accent)', textAlign: 'center', marginTop: '0.5rem', fontFamily: 'var(--font-primary)' }}>

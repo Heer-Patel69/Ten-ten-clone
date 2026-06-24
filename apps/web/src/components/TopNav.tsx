@@ -6,7 +6,7 @@ export default function TopNav() {
   const pathname = usePathname();
 
   const hiddenRoutes = ['/', '/login', '/register'];
-  if (hiddenRoutes.includes(pathname)) return null;
+  if (hiddenRoutes.includes(pathname) || pathname.startsWith('/chat') || pathname.startsWith('/talk')) return null;
 
   return (
     <header className="fixed top-0 left-0 w-full z-40 card" style={{
@@ -30,7 +30,7 @@ export default function TopNav() {
         fontStyle: 'italic',
         letterSpacing: '0.05em'
       }}>
-        Walkie<span style={{ color: 'var(--color-accent)' }}>Talk</span>
+        Blink<span style={{ color: 'var(--color-accent)' }}>Meet</span>
       </h1>
     </header>
   );

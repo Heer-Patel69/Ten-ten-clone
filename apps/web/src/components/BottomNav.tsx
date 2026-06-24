@@ -8,7 +8,7 @@ export default function BottomNav() {
 
   // Do not show on landing page or auth pages
   const hiddenRoutes = ['/', '/login', '/register'];
-  if (hiddenRoutes.includes(pathname)) return null;
+  if (hiddenRoutes.includes(pathname) || pathname.startsWith('/chat') || pathname.startsWith('/talk')) return null;
 
   return (
     <nav style={{

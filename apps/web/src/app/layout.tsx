@@ -26,14 +26,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'WalkieTalk — Live Voice Chat',
+  title: 'Blink Meet Chat Disappear',
   description: 'Talk to your friends instantly — like a walkie-talkie on your phone. Add friends with a 4-digit code and start chatting live.',
-  keywords: ['walkie-talkie', 'voice chat', 'pwa', 'live audio', 'friends'],
+  keywords: ['walkie-talkie', 'voice chat', 'pwa', 'live audio', 'friends', 'blink', 'meet', 'chat', 'disappear'],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'WalkieTalk',
+    title: 'Blink',
   },
   formatDetection: {
     telephone: false,
