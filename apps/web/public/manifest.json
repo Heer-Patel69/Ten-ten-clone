@@ -6,8 +6,8 @@
   "start_url": "/friends?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#121420",
-  "theme_color": "#1acd8a",
+  "background_color": "#141012",
+  "theme_color": "#ed3379",
   "orientation": "portrait-primary",
   "categories": ["communication", "social"],
   "icons": [

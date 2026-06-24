@@ -99,12 +99,12 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
     };
   }, [webrtc.cleanup]);
 
-  const handlePTTStart = () => {
-    webrtc.startTalking(friendId);
-  };
-
-  const handlePTTEnd = () => {
-    webrtc.stopTalking();
+  const handleToggleTalk = () => {
+    if (webrtc.isTalking) {
+      webrtc.stopTalking();
+    } else {
+      webrtc.startTalking(friendId);
+    }
   };
 
   const handleInitMicrophone = async () => {
@@ -206,7 +206,7 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
             </div>
           ) : webrtc.isTalking ? (
             <p style={{ color: 'var(--color-danger)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-lg)' }}>
-              🔴 You are talking...
+              🔴 You are talking... (Tap to stop)
             </p>
           ) : webrtc.isReceiving ? (
             <p style={{ color: 'var(--color-accent)', fontWeight: 'var(--fw-semibold)', fontSize: 'var(--fs-lg)' }}>
@@ -214,7 +214,7 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
             </p>
           ) : (
             <p className="text-secondary">
-              Hold the button to talk
+              Tap the button to talk
             </p>
           )}
           {webrtc.remotePlaybackBlocked && (
@@ -228,21 +228,11 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
           )}
         </div>
 
-        {/* Push-to-Talk Button */}
+        {/* Tap-to-Talk Button */}
         <div className="ptt-container">
           <button
             className={`ptt-button ${webrtc.isTalking ? 'recording' : ''}`}
-            onMouseDown={handlePTTStart}
-            onMouseUp={handlePTTEnd}
-            onMouseLeave={handlePTTEnd}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handlePTTStart();
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              handlePTTEnd();
-            }}
+            onClick={handleToggleTalk}
             disabled={!micInitialized}
             style={{
               opacity: micInitialized ? 1 : 0.4,
