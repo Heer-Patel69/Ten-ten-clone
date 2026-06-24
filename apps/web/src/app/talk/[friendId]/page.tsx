@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSocket } from '@/contexts/SocketContext';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { api } from '@/lib/api';
-import { getSocket } from '@/lib/socket';
 
 interface FriendInfo {
   _id: string;
@@ -50,9 +50,10 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
     if (user) fetchFriend();
   }, [user, authLoading, router, fetchFriend]);
 
+  const { socket } = useSocket();
+
   // Socket presence updates
   useEffect(() => {
-    const socket = getSocket();
     if (!socket) return;
 
     const handleOnline = (data: { userId: string }) => {
@@ -72,7 +73,7 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
       socket.off('friend:online', handleOnline);
       socket.off('friend:offline', handleOffline);
     };
-  }, [friendId]);
+  }, [friendId, socket]);
 
   // WebRTC listeners
   useEffect(() => {

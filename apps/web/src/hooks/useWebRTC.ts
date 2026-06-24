@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { getSocket } from '@/lib/socket';
+import { useCallback, useRef, useState, useEffect } from 'react';
+import { useSocket } from '@/contexts/SocketContext';
 
 interface UseWebRTCOptions {
   onIncomingVoice?: (from: string, displayName: string) => void;
@@ -13,9 +13,10 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
   const [isReceiving, setIsReceiving] = useState(false);
   const [activePeerId, setActivePeerId] = useState<string | null>(null);
 
+  const { socket } = useSocket();
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
 
   // STUN servers for NAT traversal (free public servers)
   const rtcConfig: RTCConfiguration = {
@@ -34,18 +35,37 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
-    if (audioRef.current) {
-      audioRef.current.srcObject = null;
+    
+    // Stop playing audio
+    const audioEl = document.getElementById('walkietalk-audio') as HTMLAudioElement;
+    if (audioEl) {
+      audioEl.pause();
+      audioEl.srcObject = null;
     }
+
+    pendingCandidates.current = [];
     setIsTalking(false);
     setIsReceiving(false);
     setActivePeerId(null);
   }, []);
 
+  const processPendingCandidates = async () => {
+    const pc = peerConnectionRef.current;
+    if (!pc || !pc.remoteDescription) return;
+    
+    for (const candidate of pendingCandidates.current) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (e) {
+        console.error('Error adding queued ICE candidate', e);
+      }
+    }
+    pendingCandidates.current = [];
+  };
+
   // Start talking to a friend (sender side)
   const startTalking = useCallback(
     async (friendId: string) => {
-      const socket = getSocket();
       if (!socket) return;
 
       try {
@@ -95,22 +115,20 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
         cleanup();
       }
     },
-    [cleanup, rtcConfig]
+    [cleanup, rtcConfig, socket]
   );
 
   // Stop talking
   const stopTalking = useCallback(() => {
-    const socket = getSocket();
     if (socket && activePeerId) {
       socket.emit('voice:end', { to: activePeerId });
     }
     cleanup();
     if (navigator.vibrate) navigator.vibrate(30);
-  }, [activePeerId, cleanup]);
+  }, [activePeerId, cleanup, socket]);
 
   // Handle incoming voice (receiver side) — call this in your component's useEffect
   const setupListeners = useCallback(() => {
-    const socket = getSocket();
     if (!socket) return () => {};
 
     const handleVoiceStart = (data: { from: string; displayName: string }) => {
@@ -126,13 +144,11 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
         // Handle incoming audio — play on speaker
         pc.ontrack = (event) => {
-          if (!audioRef.current) {
-            audioRef.current = new Audio();
+          const audioEl = document.getElementById('walkietalk-audio') as HTMLAudioElement;
+          if (audioEl) {
+            audioEl.srcObject = event.streams[0];
+            audioEl.play().catch(console.error);
           }
-          audioRef.current.srcObject = event.streams[0];
-          audioRef.current.autoplay = true;
-          // Force play for speaker
-          audioRef.current.play().catch(console.error);
         };
 
         // Handle ICE candidates
@@ -147,6 +163,8 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
         // Set remote description and create answer
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        await processPendingCandidates();
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
@@ -162,6 +180,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
           await peerConnectionRef.current.setRemoteDescription(
             new RTCSessionDescription(data.answer)
           );
+          await processPendingCandidates();
         }
       } catch (error) {
         console.error('Failed to handle voice answer:', error);
@@ -170,10 +189,12 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
     const handleIceCandidate = async (data: { from: string; candidate: RTCIceCandidateInit }) => {
       try {
-        if (peerConnectionRef.current) {
-          await peerConnectionRef.current.addIceCandidate(
-            new RTCIceCandidate(data.candidate)
-          );
+        const pc = peerConnectionRef.current;
+        if (pc && pc.remoteDescription) {
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } else {
+          // Queue candidate if connection or remote description isn't ready
+          pendingCandidates.current.push(data.candidate);
         }
       } catch (error) {
         console.error('Failed to handle ICE candidate:', error);
@@ -198,7 +219,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
       socket.off('voice:ice-candidate', handleIceCandidate);
       socket.off('voice:end', handleVoiceEnd);
     };
-  }, [cleanup, options, rtcConfig]);
+  }, [cleanup, options, rtcConfig, socket]);
 
   return {
     isTalking,

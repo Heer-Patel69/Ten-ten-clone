@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { SocketProvider } from '@/contexts/SocketContext';
 
 export const metadata: Metadata = {
   title: 'WalkieTalk — Live Voice Chat',
   description: 'Talk to your friends instantly — like a walkie-talkie on your phone. Add friends with a 4-digit code and start chatting live.',
   keywords: ['walkie-talkie', 'voice chat', 'pwa', 'live audio', 'friends'],
-  manifest: '/manifest.webmanifest',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -36,9 +37,11 @@ export default function RootLayout({
       </head>
       <body>
         <div className="bg-mesh" />
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <SocketProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </SocketProvider>
       </body>
     </html>
   );

@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSocket } from '@/contexts/SocketContext';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { api } from '@/lib/api';
-import { getSocket } from '@/lib/socket';
 import Link from 'next/link';
 
 interface Friend {
@@ -62,8 +62,9 @@ export default function FriendsPage() {
   }, [user, authLoading, router, fetchFriends]);
 
   // Socket listeners for real-time presence
+  const { socket } = useSocket();
+
   useEffect(() => {
-    const socket = getSocket();
     if (!socket) return;
 
     const handleOnline = (data: { userId: string }) => {
@@ -93,7 +94,7 @@ export default function FriendsPage() {
       socket.off('friend:online', handleOnline);
       socket.off('friend:offline', handleOffline);
     };
-  }, []);
+  }, [socket]);
 
   // WebRTC listeners
   useEffect(() => {
