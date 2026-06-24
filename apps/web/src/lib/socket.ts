@@ -63,6 +63,7 @@ export function connectSocket(token: string): Socket {
     console.error('🔌 Socket connection error:', error.message);
   });
 
+  notifySocketListeners();
   return socket;
 }
 
