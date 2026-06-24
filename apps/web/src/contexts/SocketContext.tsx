@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import { getSocket } from '@/lib/socket';
+import { keepAlive } from '@/lib/backgroundKeepAlive';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -42,7 +43,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     };
   }, [socket]);
 
-  // Audio unlock mechanism for mobile browsers
+  // Audio unlock mechanism & Background Keep-Alive
   useEffect(() => {
     const unlockAudio = () => {
       if (audioUnlocked.current) return;
@@ -51,6 +52,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         audioEl.play().catch(() => {});
         audioEl.pause();
         audioEl.currentTime = 0;
+        
+        // Start background silent keep-alive
+        keepAlive.enable();
+
         audioUnlocked.current = true;
         // Remove listeners after unlock
         document.removeEventListener('click', unlockAudio);

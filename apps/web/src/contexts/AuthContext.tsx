@@ -27,6 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const startSocket = useCallback((token: string) => {
+    return connectSocket(token);
+  }, []);
+
   // Check for existing session on mount
   useEffect(() => {
     const initAuth = async () => {
@@ -35,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const res = await api.getMe();
           setUser(res.data.user);
-          connectSocket(token);
+          startSocket(token);
         } catch {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
@@ -44,24 +48,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     };
     initAuth();
-  }, []);
+  }, [startSocket]);
 
   const login = useCallback(async (userCode: string, password: string) => {
     const res = await api.login(userCode, password);
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
-    connectSocket(res.data.accessToken);
-  }, []);
+    startSocket(res.data.accessToken);
+  }, [startSocket]);
 
   const register = useCallback(async (displayName: string, password: string): Promise<string> => {
     const res = await api.register(displayName, password);
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
-    connectSocket(res.data.accessToken);
+    startSocket(res.data.accessToken);
     return res.data.userCode;
-  }, []);
+  }, [startSocket]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('accessToken');

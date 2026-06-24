@@ -21,6 +21,7 @@ interface Friend {
 
 export default function FriendsPage() {
   const { user, loading: authLoading } = useAuth();
+  const { socket, isConnected } = useSocket();
   const router = useRouter();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
@@ -61,9 +62,13 @@ export default function FriendsPage() {
     }
   }, [user, authLoading, router, fetchFriends]);
 
-  // Socket listeners for real-time presence
-  const { socket } = useSocket();
+  useEffect(() => {
+    if (user && isConnected) {
+      fetchFriends();
+    }
+  }, [user, isConnected, fetchFriends]);
 
+  // Socket listeners for real-time presence
   useEffect(() => {
     if (!socket) return;
 
@@ -98,9 +103,10 @@ export default function FriendsPage() {
 
   // WebRTC listeners
   useEffect(() => {
+    if (!socket) return;
     const cleanup = webrtc.setupListeners();
     return cleanup;
-  }, [webrtc.setupListeners]);
+  }, [socket, webrtc.setupListeners]);
 
   const formatLastSeen = (date: string) => {
     if (!date) return 'Unknown';

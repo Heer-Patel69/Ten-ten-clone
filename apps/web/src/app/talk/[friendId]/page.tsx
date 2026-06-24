@@ -17,6 +17,7 @@ interface FriendInfo {
 export default function TalkPage({ params }: { params: Promise<{ friendId: string }> }) {
   const { friendId } = use(params);
   const { user, loading: authLoading } = useAuth();
+  const { socket, isConnected } = useSocket();
   const router = useRouter();
   const [friend, setFriend] = useState<FriendInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,11 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
     if (user) fetchFriend();
   }, [user, authLoading, router, fetchFriend]);
 
-  const { socket } = useSocket();
+  useEffect(() => {
+    if (user && isConnected) {
+      fetchFriend();
+    }
+  }, [user, isConnected, fetchFriend]);
 
   // Socket presence updates
   useEffect(() => {
@@ -77,9 +82,10 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
 
   // WebRTC listeners
   useEffect(() => {
+    if (!socket) return;
     const cleanup = webrtc.setupListeners();
     return cleanup;
-  }, [webrtc.setupListeners]);
+  }, [socket, webrtc.setupListeners]);
 
   // Cleanup on unmount
   useEffect(() => {
