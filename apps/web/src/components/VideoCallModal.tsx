@@ -7,10 +7,11 @@ interface VideoCallModalProps {
   peerId: string;
   isGroup: boolean;
   incomingOffer?: RTCSessionDescriptionInit;
+  initialIceCandidates?: any[];
   onClose: () => void;
 }
 
-export default function VideoCallModal({ peerId, isGroup, incomingOffer, onClose }: VideoCallModalProps) {
+export default function VideoCallModal({ peerId, isGroup, incomingOffer, initialIceCandidates, onClose }: VideoCallModalProps) {
   const { socket } = useSocket();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -50,17 +51,29 @@ export default function VideoCallModal({ peerId, isGroup, incomingOffer, onClose
           }
         };
 
+        let iceBuffer: any[] = [];
+        let hasRemoteDesc = false;
+
         if (socket) {
           // Listen for answers and ice candidates
           socket.on('video:answer', async (data: { answer: RTCSessionDescriptionInit }) => {
             if (peerConnectionRef.current) {
               await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+              hasRemoteDesc = true;
+              for (const cand of iceBuffer) {
+                await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(cand));
+              }
+              iceBuffer = [];
             }
           });
 
           socket.on('video:ice-candidate', async (data: { candidate: RTCIceCandidateInit }) => {
             if (peerConnectionRef.current) {
-              await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+              if (hasRemoteDesc) {
+                await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+              } else {
+                iceBuffer.push(data.candidate);
+              }
             }
           });
         }
@@ -68,6 +81,14 @@ export default function VideoCallModal({ peerId, isGroup, incomingOffer, onClose
         // Create offer or answer
         if (incomingOffer) {
           await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+          hasRemoteDesc = true;
+          
+          if (initialIceCandidates) {
+            for (const cand of initialIceCandidates) {
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            }
+          }
+
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           if (socket) {

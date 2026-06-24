@@ -20,6 +20,8 @@ export default function GlobalNotifications() {
     isGroup: boolean;
   } | null>(null);
 
+  const [incomingIceCandidates, setIncomingIceCandidates] = useState<any[]>([]);
+
   const [toastMessage, setToastMessage] = useState<{
     id: string;
     senderName: string;
@@ -31,6 +33,7 @@ export default function GlobalNotifications() {
     from: string;
     offer: any;
     isGroup: boolean;
+    initialIceCandidates: any[];
   } | null>(null);
 
   useEffect(() => {
@@ -39,11 +42,16 @@ export default function GlobalNotifications() {
     const handleVideoOffer = (data: { from: string; displayName?: string; offer: any; isGroup: boolean }) => {
       // Don't show incoming call if we are already in a call with them (shouldn't happen)
       setIncomingCall(data);
+      setIncomingIceCandidates([]); // Reset buffer for new call
       // Play a ringing sound
       try {
         const audio = new Audio('/sounds/ringtone.mp3'); // We'll assume this exists or fails silently
         audio.play().catch(() => {});
       } catch (e) {}
+    };
+
+    const handleIceCandidate = (data: { candidate: any }) => {
+      setIncomingIceCandidates(prev => [...prev, data.candidate]);
     };
 
     const handleChatReceive = (data: { message: IMessage }) => {
@@ -79,18 +87,24 @@ export default function GlobalNotifications() {
     };
 
     socket.on('video:offer', handleVideoOffer);
+    socket.on('video:ice-candidate', handleIceCandidate);
     socket.on('chat:receive', handleChatReceive);
 
     return () => {
       socket.off('video:offer', handleVideoOffer);
+      socket.off('video:ice-candidate', handleIceCandidate);
       socket.off('chat:receive', handleChatReceive);
     };
   }, [socket, user, pathname]);
 
   const handleAcceptCall = () => {
     if (incomingCall) {
-      setAcceptedCall(incomingCall);
+      setAcceptedCall({
+        ...incomingCall,
+        initialIceCandidates: incomingIceCandidates
+      });
       setIncomingCall(null);
+      setIncomingIceCandidates([]);
     }
   };
 
@@ -235,6 +249,7 @@ export default function GlobalNotifications() {
           peerId={acceptedCall.from}
           isGroup={acceptedCall.isGroup}
           incomingOffer={acceptedCall.offer}
+          initialIceCandidates={acceptedCall.initialIceCandidates}
           onClose={handleCloseCall}
         />
       )}
