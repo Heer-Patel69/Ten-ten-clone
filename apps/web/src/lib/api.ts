@@ -78,32 +78,32 @@ class ApiClient {
 
   // Auth
   async register(displayName: string, password: string) {
-    return this.request<any>('/api/auth/register', {
+    return this.request<unknown>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ displayName, password }),
     });
   }
 
   async login(userCode: string, password: string) {
-    return this.request<any>('/api/auth/login', {
+    return this.request<unknown>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ userCode, password }),
     });
   }
 
   async getMe() {
-    return this.request<any>('/api/auth/me');
+    return this.request<unknown>('/api/auth/me');
   }
 
   async updateProfile(data: { displayName?: string }) {
-    return this.request<any>('/api/auth/profile', {
+    return this.request<unknown>('/api/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async savePushSubscription(subscription: any) {
-    return this.request<any>('/api/auth/push-subscription', {
+  async savePushSubscription(subscription: unknown) {
+    return this.request<unknown>('/api/auth/push-subscription', {
       method: 'PUT',
       body: JSON.stringify({ subscription }),
     });
@@ -111,61 +111,61 @@ class ApiClient {
 
   // Friends
   async getFriends() {
-    return this.request<any>('/api/friends');
+    return this.request<unknown>('/api/friends');
   }
 
   async getFriendRequests() {
-    return this.request<any>('/api/friends/requests');
+    return this.request<unknown>('/api/friends/requests');
   }
 
   async getSentRequests() {
-    return this.request<any>('/api/friends/sent');
+    return this.request<unknown>('/api/friends/sent');
   }
 
   async sendFriendRequest(userCode: string) {
-    return this.request<any>('/api/friends/request', {
+    return this.request<unknown>('/api/friends/request', {
       method: 'POST',
       body: JSON.stringify({ userCode }),
     });
   }
 
   async acceptFriendRequest(friendshipId: string) {
-    return this.request<any>(`/api/friends/accept/${friendshipId}`, {
+    return this.request<unknown>(`/api/friends/accept/${friendshipId}`, {
       method: 'PUT',
     });
   }
 
   async rejectFriendRequest(friendshipId: string) {
-    return this.request<any>(`/api/friends/reject/${friendshipId}`, {
+    return this.request<unknown>(`/api/friends/reject/${friendshipId}`, {
       method: 'PUT',
     });
   }
 
   async removeFriend(friendshipId: string) {
-    return this.request<any>(`/api/friends/${friendshipId}`, {
+    return this.request<unknown>(`/api/friends/${friendshipId}`, {
       method: 'DELETE',
     });
   }
 
   // Admin
   async getAdminStats() {
-    return this.request<any>('/api/admin/stats');
+    return this.request<unknown>('/api/admin/stats');
   }
 
   async getAdminUsers(page = 1, search = '') {
     const params = new URLSearchParams({ page: String(page) });
     if (search) params.set('search', search);
-    return this.request<any>(`/api/admin/users?${params}`);
+    return this.request<unknown>(`/api/admin/users?${params}`);
   }
 
   async deleteUser(userId: string) {
-    return this.request<any>(`/api/admin/users/${userId}`, {
+    return this.request<unknown>(`/api/admin/users/${userId}`, {
       method: 'DELETE',
     });
   }
 
   async updateUserRole(userId: string, role: string) {
-    return this.request<any>(`/api/admin/users/${userId}/role`, {
+    return this.request<unknown>(`/api/admin/users/${userId}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role }),
     });
@@ -173,11 +173,11 @@ class ApiClient {
 
   async getReports(status?: string) {
     const params = status ? `?status=${status}` : '';
-    return this.request<any>(`/api/admin/reports${params}`);
+    return this.request<unknown>(`/api/admin/reports${params}`);
   }
 
   async updateReport(reportId: string, data: { status: string; resolution?: string }) {
-    return this.request<any>(`/api/admin/reports/${reportId}`, {
+    return this.request<unknown>(`/api/admin/reports/${reportId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

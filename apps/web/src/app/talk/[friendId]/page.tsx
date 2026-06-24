@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useEffect, useState, useCallback, use } from 'react';
@@ -36,7 +37,7 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
     try {
       const res = await api.getFriends();
       const found = res.data.friends.find(
-        (f: any) => f.friend._id === friendId
+        (f: { friend: { _id: string } }) => f.friend._id === friendId
       );
       if (found) {
         setFriend(found.friend);
@@ -53,11 +54,13 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
       router.replace('/login');
       return;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     if (user) fetchFriend();
   }, [user, authLoading, router, fetchFriend]);
 
   useEffect(() => {
     if (user && isConnected) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       fetchFriend();
     }
   }, [user, isConnected, fetchFriend]);

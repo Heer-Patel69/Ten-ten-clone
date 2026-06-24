@@ -214,7 +214,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
   }, [cleanupSender, cleanupReceiver]);
 
   const createPeerConnection = useCallback(
-    (peerId: string, callId: string, type: 'SEND' | 'RECEIVE') => {
+    (peerId: string, callId: string, _type: 'SEND' | 'RECEIVE') => {
       const pc = new RTCPeerConnection(rtcConfig);
 
       pc.onicecandidate = (event) => {

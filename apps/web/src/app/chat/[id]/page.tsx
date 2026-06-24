@@ -181,10 +181,10 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         </p>
         
         {messages.map(msg => {
-          const isMine = msg.senderId === user?._id || (msg.senderId as any)._id === user?._id;
+          const isMine = msg.senderId === user?._id || (msg.senderId as { _id: string })._id === user?._id;
           const senderName = isMine 
             ? (msg.isAnonymous ? msg.anonymousName : 'You')
-            : (msg.isAnonymous ? msg.anonymousName : (msg.senderId as any).displayName);
+            : (msg.isAnonymous ? msg.anonymousName : (msg.senderId as { displayName: string }).displayName);
 
           return (
             <div key={msg._id} style={{

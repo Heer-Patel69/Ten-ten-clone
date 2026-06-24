@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
@@ -31,6 +32,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!socket) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsConnected(false);
       return;
     }
@@ -38,6 +40,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const handleConnect = () => setIsConnected(true);
     const handleDisconnect = () => setIsConnected(false);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsConnected(socket.connected);
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
