@@ -22,7 +22,6 @@ export default function AddFriendPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<PendingRequest[]>([]);
-  const [tab, setTab] = useState<'add' | 'requests'>('add');
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -88,184 +87,117 @@ export default function AddFriendPage() {
   };
 
   if (authLoading) {
-    return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
+    return <div className="min-h-screen flex items-center justify-center text-primary"><span className="material-symbols-outlined animate-spin text-4xl">blur_on</span></div>;
   }
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <button className="btn btn-ghost btn-sm" onClick={() => router.back()}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
-        <h1 className="page-title">Add Friend</h1>
-        <div style={{ width: '60px' }} />
+    <div className="mesh-bg min-h-screen pb-32 font-primary text-text-primary px-6 md:px-12 pt-12">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <h1 className="text-3xl font-display font-bold tracking-tight">Add Friend</h1>
       </div>
 
-      <div className="page-content">
-        {/* Tab Switcher */}
-        <div style={{
-          display: 'flex',
-          background: 'var(--color-bg-secondary)',
-          borderRadius: 'var(--radius-md)',
-          padding: '4px',
-          marginBottom: 'var(--space-xl)',
-        }}>
-          <button
-            className={`btn btn-sm btn-full ${tab === 'add' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setTab('add')}
-          >
-            Add by Code
-          </button>
-          <button
-            className={`btn btn-sm btn-full ${tab === 'requests' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setTab('requests')}
-            style={{ position: 'relative' }}
-          >
-            Requests
-            {requests.length > 0 && (
-              <span className="badge badge-danger" style={{ marginLeft: '6px' }}>
-                {requests.length}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {tab === 'add' ? (
-          <>
-            {/* Your Code */}
-            <div className="glass-card" style={{ padding: 'var(--space-xl)', textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
-              <p className="text-secondary" style={{ fontSize: 'var(--fs-sm)', marginBottom: 'var(--space-sm)' }}>
-                Your Code — Share with friends
-              </p>
-              <div className="auth-code-display" style={{ fontSize: 'var(--fs-4xl)' }}>
-                {user?.userCode}
-              </div>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(user?.userCode || '');
-                  setSuccess('Code copied!');
-                  setTimeout(() => setSuccess(''), 2000);
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-                Copy
-              </button>
-            </div>
-
-            {/* Add by Code Form */}
-            <form onSubmit={handleSendRequest}>
-              <div className="input-group" style={{ marginBottom: 'var(--space-lg)' }}>
-                <label>Enter Friend&apos;s Code</label>
-                <input
-                  type="text"
-                  className="input input-code"
-                  placeholder="0000"
-                  value={code}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                    setCode(val);
-                  }}
-                  maxLength={4}
-                  inputMode="numeric"
-                />
-              </div>
-
-              {error && (
-                <div style={{ color: 'var(--color-danger)', fontSize: 'var(--fs-sm)', textAlign: 'center', marginBottom: 'var(--space-md)' }}>
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div style={{ color: 'var(--color-accent)', fontSize: 'var(--fs-sm)', textAlign: 'center', marginBottom: 'var(--space-md)' }}>
-                  {success}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="btn btn-primary btn-full btn-lg"
-                disabled={loading || code.length !== 4}
-              >
-                {loading ? <span className="spinner" /> : 'Send Friend Request'}
-              </button>
-            </form>
-          </>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+      <div className="max-w-2xl mx-auto space-y-12">
+        
+        {/* Pending Requests Section */}
+        <section>
+          <h2 className="text-lg font-semibold mb-4 text-text-secondary flex items-center gap-2">
+            Pending Requests {requests.length > 0 && <span className="bg-danger text-white text-xs px-2 py-0.5 rounded-full">{requests.length}</span>}
+          </h2>
+          
+          <div className="space-y-4">
             {requests.length === 0 ? (
-              <div className="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{ width: 48, height: 48 }}>
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                </svg>
-                <h3>No pending requests</h3>
-                <p>Share your code with friends to receive requests</p>
+              <div className="glass-surface rounded-[20px] p-6 text-center text-text-muted">
+                <span className="material-symbols-outlined text-4xl mb-2 opacity-50">inbox</span>
+                <p>No new requests</p>
               </div>
             ) : (
               requests.map((req, i) => (
-                <div key={req._id} className="friend-card stagger-item" style={{ animationDelay: `${i * 0.05}s` }}>
-                  <div className="avatar">
-                    {req.requester.displayName.charAt(0)}
+                <div key={req._id} className="glass-surface p-4 rounded-[20px] flex items-center justify-between shadow-sm animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-fixed to-primary flex items-center justify-center text-white font-bold text-lg shadow-inner">
+                      {req.requester.displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-text-primary">{req.requester.displayName}</h3>
+                      <p className="text-sm text-text-muted">#{req.requester.userCode}</p>
+                    </div>
                   </div>
-                  <div className="friend-info">
-                    <div className="friend-name">{req.requester.displayName}</div>
-                    <div className="friend-code">#{req.requester.userCode}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                    <button className="btn btn-primary btn-sm" onClick={() => handleAccept(req._id)}>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleAccept(req._id)}
+                      className="bg-primary hover:bg-primary-light text-white px-5 py-2 rounded-full text-sm font-semibold transition-transform active:scale-95 shadow-md shadow-primary/20"
+                    >
                       Accept
                     </button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => handleReject(req._id)}>
-                      ✕
+                    <button 
+                      onClick={() => handleReject(req._id)}
+                      className="bg-surface-variant text-text-secondary hover:bg-black/5 px-4 py-2 rounded-full text-sm font-semibold transition-transform active:scale-95"
+                    >
+                      Decline
                     </button>
                   </div>
                 </div>
               ))
             )}
-
-            {error && (
-              <div style={{ color: 'var(--color-danger)', fontSize: 'var(--fs-sm)', textAlign: 'center' }}>
-                {error}
-              </div>
-            )}
-            {success && (
-              <div style={{ color: 'var(--color-accent)', fontSize: 'var(--fs-sm)', textAlign: 'center' }}>
-                {success}
-              </div>
-            )}
           </div>
-        )}
-      </div>
+        </section>
 
-      {/* Bottom Navigation */}
-      <nav className="nav-bar">
-        <div className="nav-bar-inner">
-          <Link href="/friends" className="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            Friends
-          </Link>
-          <Link href="/add-friend" className="nav-item active">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-            Add
-          </Link>
-          <Link href="/profile" className="nav-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-            </svg>
-            Profile
-          </Link>
-        </div>
-      </nav>
+        {/* Add Friend Section */}
+        <section>
+          <h2 className="text-lg font-semibold mb-4 text-text-secondary">Add by Code</h2>
+          <form onSubmit={handleSendRequest} className="glass-surface p-6 rounded-[24px] shadow-sm">
+            <p className="text-sm text-text-muted mb-4">Enter a 4-digit code to send a friend request.</p>
+            
+            <div className="relative flex items-center mb-2">
+              <span className="absolute left-4 material-symbols-outlined text-text-muted">tag</span>
+              <input
+                type="text"
+                placeholder="0000"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                className="w-full bg-white/60 border border-white focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-full py-4 pl-12 pr-16 text-lg tracking-[0.2em] font-semibold outline-none transition-all placeholder:text-text-muted/50"
+                maxLength={4}
+                inputMode="numeric"
+              />
+              <button
+                type="submit"
+                disabled={loading || code.length !== 4}
+                className="absolute right-2 bg-primary text-white w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary-light transition-colors shadow-md"
+              >
+                {loading ? (
+                  <span className="material-symbols-outlined animate-spin text-[20px]">refresh</span>
+                ) : (
+                  <span className="material-symbols-outlined text-[20px]">person_add</span>
+                )}
+              </button>
+            </div>
+            
+            {error && <p className="text-danger text-sm mt-3 pl-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span>{error}</p>}
+            {success && <p className="text-primary text-sm mt-3 pl-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">check_circle</span>{success}</p>}
+          </form>
+
+          {/* User's own code */}
+          <div className="mt-6 flex flex-col items-center justify-center py-6 glass-surface rounded-[24px]">
+             <p className="text-sm text-text-secondary mb-2">Your Code</p>
+             <div className="text-3xl font-display font-bold tracking-widest text-primary mb-3">
+               {user?.userCode}
+             </div>
+             <button
+                className="flex items-center gap-2 bg-white/50 hover:bg-white/80 border border-white px-4 py-2 rounded-full text-sm font-semibold text-text-secondary transition-colors"
+                onClick={() => {
+                  navigator.clipboard.writeText(user?.userCode || '');
+                  setSuccess('Code copied to clipboard!');
+                  setTimeout(() => setSuccess(''), 2000);
+                }}
+              >
+                <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                Copy Code
+              </button>
+          </div>
+        </section>
+
+      </div>
     </div>
   );
 }
