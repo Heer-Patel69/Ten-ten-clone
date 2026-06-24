@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import { subscribeToSocket } from '@/lib/socket';
+import { keepAlive } from '@/lib/backgroundKeepAlive';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -56,6 +57,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         audioEl.play().catch(() => {});
         audioEl.pause();
         audioEl.currentTime = 0;
+
+        keepAlive.enable();
 
         audioUnlocked.current = true;
         // Remove listeners after unlock
