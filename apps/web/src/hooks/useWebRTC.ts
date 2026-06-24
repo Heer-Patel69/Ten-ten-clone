@@ -6,6 +6,7 @@ import { useSocket } from '@/contexts/SocketContext';
 interface UseWebRTCOptions {
   onIncomingVoice?: (from: string, displayName: string) => void;
   onVoiceEnd?: (from: string) => void;
+  onVoiceUnavailable?: (reason: string) => void;
 }
 
 interface VoiceStartPayload {
@@ -404,6 +405,7 @@ export function useWebRTC(options: UseWebRTCOptions = {}) {
 
       console.warn('Voice call unavailable:', data.reason ?? 'Peer is not reachable');
       cleanup();
+      optionsRef.current.onVoiceUnavailable?.(data.reason ?? 'Peer is not reachable');
     };
 
     socket.on('voice:start', handleVoiceStart);

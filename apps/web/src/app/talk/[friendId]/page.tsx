@@ -25,6 +25,9 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
   const webrtc = useWebRTC({
     onIncomingVoice: () => {},
     onVoiceEnd: () => {},
+    onVoiceUnavailable: (reason) => {
+      alert(`Cannot reach ${friend?.displayName || 'friend'}: The app on their phone might be closed or they have no internet.`);
+    },
   });
 
   const fetchFriend = useCallback(async () => {
@@ -95,7 +98,6 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
   }, [webrtc.cleanup]);
 
   const handlePTTStart = () => {
-    if (!friend?.isOnline) return;
     webrtc.startTalking(friendId);
   };
 
@@ -220,10 +222,8 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
               e.preventDefault();
               handlePTTEnd();
             }}
-            disabled={!friend.isOnline}
             style={{
-              opacity: friend.isOnline ? 1 : 0.4,
-              cursor: friend.isOnline ? 'pointer' : 'not-allowed',
+              cursor: 'pointer',
             }}
           >
             <div className="ptt-ring" />
@@ -237,7 +237,7 @@ export default function TalkPage({ params }: { params: Promise<{ friendId: strin
             </svg>
           </button>
           <p className="ptt-label">
-            {friend.isOnline ? 'Hold to Talk' : 'Friend is offline'}
+            Hold to Talk
           </p>
         </div>
       </div>
