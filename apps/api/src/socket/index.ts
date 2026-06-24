@@ -127,6 +127,9 @@ export function setupSocket(httpServer: HttpServer): Server {
 
     console.log(`User connected: ${displayName} (${userId})`);
 
+    // Join a room named after the user's ID for easy targeting across multiple devices
+    socket.join(userId);
+
     const wasOffline = addUserSocket(userId, socket.id);
     await User.findByIdAndUpdate(userId, { isOnline: true });
 
