@@ -24,14 +24,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'WalkieTalk — Live Voice Chat',
-  description: 'Talk to your friends instantly — like a walkie-talkie on your phone. Add friends with a 4-digit code and start chatting live.',
-  keywords: ['walkie-talkie', 'voice chat', 'pwa', 'live audio', 'friends'],
+  title: 'BLINK — Meet. Talk. Disappear.',
+  description: 'Meet new people, talk instantly, and watch messages vanish. Add friends with a 4-digit code and start chatting — your secrets are safe.',
+  keywords: ['blink', 'ephemeral chat', 'disappearing messages', 'voice chat', 'pwa', 'anonymous'],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'WalkieTalk',
+    title: 'BLINK',
   },
   formatDetection: {
     telephone: false,
@@ -58,7 +58,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-title" content="WalkieTalk" />
+        <meta name="apple-mobile-web-app-title" content="BLINK" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="HandheldFriendly" content="true" />
         <meta name="MobileOptimized" content="width" />

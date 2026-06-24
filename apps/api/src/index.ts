@@ -51,7 +51,7 @@ async function start() {
 
   server.listen(config.port, () => {
     console.log(`
-🚀 WalkieTalk API Server running!
+🚀 BLINK API Server running!
 📡 HTTP:   http://localhost:${config.port}
 🔌 Socket: ws://localhost:${config.port}
 🗄️  MongoDB: Connected

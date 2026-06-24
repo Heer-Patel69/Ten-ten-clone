@@ -182,6 +182,33 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Chat
+  async getChatMessages(peerId: string) {
+    return this.request<any>(`/api/chat/${peerId}`);
+  }
+
+  async sendChatMessage(data: {
+    receiverId?: string;
+    groupId?: string;
+    content: string;
+    type: string;
+    isAnonymous?: boolean;
+    anonymousName?: string;
+  }) {
+    return this.request<any>('/api/chat/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async markMessageViewed(messageId: string) {
+    return this.request<any>('/api/chat/view', {
+      method: 'POST',
+      body: JSON.stringify({ messageId }),
+    });
+  }
 }
 
 export const api = new ApiClient();
+
